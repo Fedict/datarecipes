@@ -97,12 +97,12 @@ public class Main {
 		LOG.info("Unzipping {} to {}", pin, tmpdir);
 
 		try (FileSystem zipfs = FileSystems.newFileSystem(pin, ClassLoader.getSystemClassLoader())) {
-			Path root = zipfs.getPath("/adminvector08");
+			Path root = zipfs.getPath(Converter.L08_SUBDIR);
 			if (root == null) {
-				throw new IOException("No adminvector 2008 found");
+				throw new IOException("No adminvector 2008 sub directory found");
 			}
 			for (Path zipEntry: Files.walk(root).toArray(Path[]::new)) {
-				String ze = zipEntry.toString().replaceFirst("/adminvector08", "");
+				String ze = zipEntry.toString().replaceFirst(Converter.L08_SUBDIR, "");
 				if (! ze.isEmpty()) {
 					Path p = Paths.get(tmpdir.toString(), ze);
 					p.toFile().deleteOnExit();
@@ -152,9 +152,10 @@ public class Main {
 		try {
 			LOG.info("Converting shapefiles {} to {}", pin, pout);
 			conv.convert(pin, pout);
+			LOG.info("Done");
 		} catch (IOException ioe) {
-			LOG.error("Could not convert data {}", ioe.getMessage());
-			System.exit(-4);
+			LOG.error("Could not convert data", ioe);
+			System.exit(-5);
 		}
 	}
 }

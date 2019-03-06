@@ -34,18 +34,24 @@ import java.nio.file.Path;
  * @author Bart Hanssens
  */
 public interface Converter {
+	// subdirectory in zip file containing Lambert 2008 files
+	public static final String L08_SUBDIR = "/adminvector08";
+
+	// shape files
 	public static final String AD_1 = "AD_1_MunicipalSection";
-	
+
+	// properties inside the shape files
 	public static final String NL = "NameDut";
 	public static final String FR = "NameFre";
 	public static final String DE = "NameGer";
 
 	public static final String ZIP = "ZipCode";
 
+	
 	/**
-	 * Conversion from shapefile to another file
+	 * Convert from directory with shapefiles to another file format
 	 * 
-	 * @param infile shapefile input
+	 * @param infile shapefile input directory
 	 * @param outdir output directory
 	 * @throws IOException
 	 */

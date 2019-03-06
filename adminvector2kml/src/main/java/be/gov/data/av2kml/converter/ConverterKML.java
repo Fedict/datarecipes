@@ -25,22 +25,47 @@
  */
 package be.gov.data.av2kml.converter;
 
+import de.micromata.opengis.kml.v_2_2_0.Document;
+import de.micromata.opengis.kml.v_2_2_0.Folder;
+import de.micromata.opengis.kml.v_2_2_0.Kml;
+import de.micromata.opengis.kml.v_2_2_0.KmlFactory;
+import de.micromata.opengis.kml.v_2_2_0.LinearRing;
+import de.micromata.opengis.kml.v_2_2_0.MultiGeometry;
+import de.micromata.opengis.kml.v_2_2_0.Placemark;
+import de.micromata.opengis.kml.v_2_2_0.Polygon;
+
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
+import java.util.logging.Level;
 
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
+import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
+import org.geotools.geometry.jts.JTS;
+import org.geotools.referencing.CRS;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.MultiPolygon;
 
-import org.geotools.feature.FeatureIterator;
-import org.opengis.feature.Feature;
-import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.Property;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.geometry.MismatchedDimensionException;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
+import org.opengis.referencing.operation.TransformException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,24 +78,146 @@ import org.slf4j.LoggerFactory;
 public class ConverterKML implements Converter {
 	private final static Logger LOG = LoggerFactory.getLogger(ConverterKML.class);
 
+	private static CoordinateReferenceSystem LAM08;
+	private static CoordinateReferenceSystem WGS84;
+	private static MathTransform LAM08_TO_WGS84;
+	
+	/**
+	 * Initialize coordinate system
+	 * 
+	 * @throws IOException 
+	 */
+	private void initCRS() throws IOException {
+		try {
+			if (LAM08 == null) {
+				LAM08 = CRS.decode("EPSG:3812");
+			}
+			if (WGS84 == null) {
+				WGS84 = CRS.decode("EPSG:4326");
+			}
+			LAM08_TO_WGS84 = CRS.findMathTransform(LAM08, WGS84);
+		} catch (FactoryException ex) {
+			throw new IOException(ex);
+		}
+	}
+
+	/**
+	 * Get a collection of "features", e.g. shapes of municipalities
+	 * 
+	 * @param indir shapefile input directory
+	 * @param name feature / shape file name
+	 * @return collection of features found in shapefile
+	 * @throws IOException 
+	 */
+	private SimpleFeatureCollection getFeatures(File indir, String name) throws IOException {
+		// parameters  for geotools
+		Map params = new HashMap<>();
+		File file = new File(indir, name + ".shp");
+        params.put("url", file.toURI().toURL());
+		DataStore store = DataStoreFinder.getDataStore(params);
+		
+		SimpleFeatureSource src = store.getFeatureSource(name);
+		return src.getFeatures();
+	}
+
+	private void addCoordsSmooth(LinearRing ring, Geometry geom) {
+		double prevX = 0.0;
+		double prevY = 0.0;
+		
+		Coordinate[] coords = geom.getCoordinates();
+		for(int p = 0; p < coords.length; p++) {
+			double smoothX = Math.round(coords[p].x * 100) / 100.0d;
+			double smoothY = Math.round(coords[p].y * 100) / 100.0d;
+			
+			if ((smoothX != prevX) || (smoothY != prevY)) {
+				ring.addToCoordinates(smoothX, smoothY);
+				prevX = smoothX;
+				prevY = smoothY;
+			}
+		}
+	}
+	
+	private void createKmlShape(Placemark place, SimpleFeature feature, Geometry geom) {			
+		Object obj = feature.getDefaultGeometry();
+		// by default, the shapefile uses multipolygons, 
+		// which allows for very complex shapes
+
+		if (obj instanceof MultiPolygon) {
+			MultiPolygon mp = (MultiPolygon) geom;
+			// check if the region is one "simple" shape
+			int num = mp.getNumGeometries();
+			
+			if (num == 1) {
+				Polygon poly = place.createAndSetPolygon();
+				LinearRing ring = poly.createAndSetOuterBoundaryIs().createAndSetLinearRing();
+				addCoordsSmooth(ring, geom);
+			}
+		
+			if (num > 1) {
+				MultiGeometry multigeom = place.createAndSetMultiGeometry();
+				for (int i = 0; i < num; i++) {
+					Geometry geometryN = mp.getGeometryN(i);
+					Polygon poly = multigeom.createAndAddPolygon();
+					LinearRing ring = poly.createAndSetOuterBoundaryIs().createAndSetLinearRing();
+	
+					addCoordsSmooth(ring, geometryN);
+				}
+			}
+		}
+	}				
+
+			
+	/**
+	 * Add zipcodes from shapefile
+	 * 
+	 * @param indir
+	 * @throws IOException 
+	 */
+	protected void addZipcodes(Path indir, Kml kml) throws IOException {
+		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_1);
+		Document doc = kml.createAndSetDocument();
+		Folder post = doc.createAndAddFolder().withName("POST");
+		
+		try (SimpleFeatureIterator features = collection.features()) {
+			while (features.hasNext()) {
+				SimpleFeature feature = features.next();
+				Placemark place = post.createAndAddPlacemark();
+				
+				Collection<Property> properties = feature.getProperties(ZIP);
+				if (! properties.isEmpty()) {
+					Property property = properties.iterator().next();
+					String zipcode = (String) property.getValue();
+					place.setName(zipcode);
+				}		
+				
+				try {
+					// convert to GPS coordinates
+					Geometry lambert08 = (Geometry) feature.getDefaultGeometry();			
+					Geometry wgs84 = JTS.transform(lambert08, LAM08_TO_WGS84);
+		
+					createKmlShape(place, feature, wgs84);
+				} catch (MismatchedDimensionException|TransformException ex) {
+					throw new IOException(ex);
+				}
+			}
+		}
+	}
+
+	
 	@Override
 	public void convert(Path indir, Path outdir) throws IOException {
-		Map params = new HashMap<>();
-		File file = new File(indir.toFile(), Converter.AD_1 + ".shp");
-        params.put("url", file.toURI().toURL());
+		initCRS();
 		
-		LOG.info("Using shape {}", file);
-        DataStore store = DataStoreFinder.getDataStore(params);
+		Kml kml = KmlFactory.createKml();
 
-		SimpleFeatureSource src = store.getFeatureSource(Converter.AD_1);
-		try (FeatureIterator features = src.getFeatures().features()) {
-			while (features.hasNext()) {
-				Feature feature = features.next();
-				GeometryAttribute geom = feature.getDefaultGeometryProperty();
-				Collection<Property> properties = feature.getProperties();
+		Path outfile = Paths.get(outdir.toString(), "adminvec.kml");
+		LOG.info("Opening {}", outfile);
 
-				properties.forEach(p -> System.err.println(p.getName() + ":" + p.getValue()));
-			}
+		try (Writer w = Files.newBufferedWriter(outfile, StandardCharsets.UTF_8,
+														StandardOpenOption.CREATE)) {
+			addZipcodes(indir, kml);
+			LOG.info("Writing");
+			kml.marshal(w);
 		}
 	}
 }
