@@ -82,8 +82,7 @@ public class ConverterKML implements Converter {
 	private final static Logger LOG = LoggerFactory.getLogger(ConverterKML.class);
 
 	private static CoordinateReferenceSystem LAM08;
-	private static CoordinateReferenceSystem WGS84;
-	private static MathTransform LAM08_TO_WGS84;
+
 	
 	/**
 	 * Initialize coordinate system
@@ -95,10 +94,6 @@ public class ConverterKML implements Converter {
 			if (LAM08 == null) {
 				LAM08 = CRS.decode("EPSG:3812");
 			}
-			if (WGS84 == null) {
-				WGS84 = CRS.decode("EPSG:4326");
-			}
-			LAM08_TO_WGS84 = CRS.findMathTransform(LAM08, WGS84);
 		} catch (FactoryException ex) {
 			throw new IOException(ex);
 		}
@@ -138,15 +133,16 @@ public class ConverterKML implements Converter {
 				
 		for(int p = 0; p < coords.length; p++) {
 			// naive algorithm, remove points that are very close to the previous one
-			if ((coords[p].x - prevX > 0.0004) || (coords[p].y - prevY > 0.0004)) {
+			if (Math.abs(coords[p].x - prevX) > 0.004 || Math.abs(coords[p].y - prevY) > 0.004) {
 				double smoothX = Math.round(coords[p].x * 1000) / 1000.0d;
 				double smoothY = Math.round(coords[p].y * 1000) / 1000.0d;
-			
+				
 				smoothed.add(new de.micromata.opengis.kml.v_2_2_0.Coordinate(smoothX, smoothY));
 				
 				prevX = smoothX;
 				prevY = smoothY;
 			}
+			//}
 		}
 		return smoothed;
 	}
@@ -257,10 +253,10 @@ public class ConverterKML implements Converter {
 	 * @param doc KML document
 	 * @throws IOException 
 	 */
-	protected void addZipcodes(Path indir, Document doc) throws IOException {
+	protected void addZipcodes(Path indir, Document kmlDoc) throws IOException {
 		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_1);
 		
-		Folder post = doc.createAndAddFolder().withName("POST");
+		Folder post = kmlDoc.createAndAddFolder().withName("POST");
 		
 		try (SimpleFeatureIterator features = collection.features()) {
 			while (features.hasNext()) {
@@ -268,18 +264,19 @@ public class ConverterKML implements Converter {
 				Placemark place = post.createAndAddPlacemark();
 				place.withStyleUrl("#style");
 				
+				String zipcode = "";
 				Collection<Property> properties = feature.getProperties(ZIP);
 				if (! properties.isEmpty()) {
 					Property property = properties.iterator().next();
-					String zipcode = (String) property.getValue();
+					zipcode = (String) property.getValue();
 					place.setName(zipcode);
 				}		
 				
 				try {
 					// convert to GPS coordinates
 					Geometry lambert08 = (Geometry) feature.getDefaultGeometry();			
-					Geometry wgs84 = JTS.transform(lambert08, LAM08_TO_WGS84);
-		
+					Geometry wgs84 = JTS.toGeographic(lambert08, LAM08);
+
 					createKmlShape(place, feature, wgs84);
 				} catch (MismatchedDimensionException|TransformException ex) {
 					throw new IOException(ex);
@@ -299,13 +296,14 @@ public class ConverterKML implements Converter {
 
 		// Create simple style info
 		Style style = doc.createAndAddStyle().withId("style");
-		style.createAndSetLineStyle().setColor("ff0000ff");
-		style.createAndSetPolyStyle().setFill(Boolean.FALSE);
+		style.createAndSetLineStyle().withColor("ff0000ff");
+		style.createAndSetPolyStyle().withFill(Boolean.FALSE);
 
 		Path outfile = Paths.get(outdir.toString(), "adminvector.kml");
 		LOG.info("Opening {}", outfile);
 
 		try (Writer w = Files.newBufferedWriter(outfile, StandardCharsets.UTF_8,
+														StandardOpenOption.TRUNCATE_EXISTING, 
 														StandardOpenOption.CREATE)) {
 			addZipcodes(indir, doc);
 			LOG.info("Writing");
