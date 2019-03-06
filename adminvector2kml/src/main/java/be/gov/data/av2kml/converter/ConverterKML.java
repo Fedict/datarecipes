@@ -125,12 +125,15 @@ public class ConverterKML implements Converter {
 		double prevY = 0.0;
 		
 		Coordinate[] coords = geom.getCoordinates();
+		
 		for(int p = 0; p < coords.length; p++) {
-			double smoothX = Math.round(coords[p].x * 100) / 100.0d;
-			double smoothY = Math.round(coords[p].y * 100) / 100.0d;
+			if ((coords[p].x - prevX > 0.0005) || (coords[p].y - prevY > 0.0005)) {
 			
-			if ((smoothX != prevX) || (smoothY != prevY)) {
+				double smoothX = Math.round(coords[p].x * 1000) / 1000.0d;
+				double smoothY = Math.round(coords[p].y * 1000) / 1000.0d;
+			
 				ring.addToCoordinates(smoothX, smoothY);
+				
 				prevX = smoothX;
 				prevY = smoothY;
 			}
@@ -159,7 +162,7 @@ public class ConverterKML implements Converter {
 					Geometry geometryN = mp.getGeometryN(i);
 					Polygon poly = multigeom.createAndAddPolygon();
 					LinearRing ring = poly.createAndSetOuterBoundaryIs().createAndSetLinearRing();
-	
+
 					addCoordsSmooth(ring, geometryN);
 				}
 			}
@@ -210,7 +213,7 @@ public class ConverterKML implements Converter {
 		
 		Kml kml = KmlFactory.createKml();
 
-		Path outfile = Paths.get(outdir.toString(), "adminvec.kml");
+		Path outfile = Paths.get(outdir.toString(), "adminvector.kml");
 		LOG.info("Opening {}", outfile);
 
 		try (Writer w = Files.newBufferedWriter(outfile, StandardCharsets.UTF_8,
