@@ -32,7 +32,7 @@ import de.micromata.opengis.kml.v_2_2_0.KmlFactory;
 import de.micromata.opengis.kml.v_2_2_0.LinearRing;
 import de.micromata.opengis.kml.v_2_2_0.MultiGeometry;
 import de.micromata.opengis.kml.v_2_2_0.Placemark;
-import de.micromata.opengis.kml.v_2_2_0.Polygon;
+import de.micromata.opengis.kml.v_2_2_0.Style;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,11 +42,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
@@ -55,9 +55,12 @@ import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
+
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Polygon;
 
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
@@ -120,52 +123,129 @@ public class ConverterKML implements Converter {
 		return src.getFeatures();
 	}
 
-	private void addCoordsSmooth(LinearRing ring, Geometry geom) {
+	/**
+	 * Reduce the KML file size by simplifying the shape and number of decimal digits.
+	 * 
+	 * @param geom shapefile geometry
+	 * @return list of KML coordinates 
+	 */
+	private List<de.micromata.opengis.kml.v_2_2_0.Coordinate> smoothedCoords(Geometry geom) {
+		Coordinate[] coords = geom.getCoordinates();
+		List<de.micromata.opengis.kml.v_2_2_0.Coordinate> smoothed = new ArrayList<>();
+		
 		double prevX = 0.0;
 		double prevY = 0.0;
-		
-		Coordinate[] coords = geom.getCoordinates();
-		
+				
 		for(int p = 0; p < coords.length; p++) {
-			if ((coords[p].x - prevX > 0.0005) || (coords[p].y - prevY > 0.0005)) {
-			
+			// naive algorithm, remove points that are very close to the previous one
+			if ((coords[p].x - prevX > 0.0004) || (coords[p].y - prevY > 0.0004)) {
 				double smoothX = Math.round(coords[p].x * 1000) / 1000.0d;
 				double smoothY = Math.round(coords[p].y * 1000) / 1000.0d;
 			
-				ring.addToCoordinates(smoothX, smoothY);
+				smoothed.add(new de.micromata.opengis.kml.v_2_2_0.Coordinate(smoothX, smoothY));
 				
 				prevX = smoothX;
 				prevY = smoothY;
 			}
 		}
+		return smoothed;
 	}
-	
+
+	/**
+	 * Create simple shaped KML places, which is the default.
+	 * 
+	 * @param kmlPlace KML place
+	 * @param geom shapefile geometry
+	 */
+	private void createKmlShapeSimple(Placemark kmlPlace, Geometry geom) {
+		// simple case, which is the default
+		List smoothed = smoothedCoords(geom);
+		
+		if (smoothed.size() > 2) {
+			kmlPlace.createAndSetPolygon()
+				.createAndSetOuterBoundaryIs()
+				.createAndSetLinearRing()
+				.withCoordinates(smoothed);
+		} else {
+			LOG.warn("Simple polygon is too small, ignoring");
+		}
+	}
+
+	/**
+	 * Create complex shaped KML places, like Ixelles or Baarle-Hertog.
+	 * 
+	 * @see https://en.wikipedia.org/wiki/Baarle-Hertog#/media/File:Baarle-Nassau_-_Baarle-Hertog-en.svg
+	 * 
+	 * @param kmlPlace KML place
+	 * @param geom shapefile geometry
+	 */
+	private void createKmlShapeComplex(Placemark kmlPlace, MultiPolygon geom) {
+		// complex shaped municipalities, like Ixelles
+		MultiGeometry kmlMulti = kmlPlace.createAndSetMultiGeometry();
+		int numPoly = geom.getNumGeometries();
+
+		for (int i = 0; i < numPoly; i++) {
+			Geometry geometryN = geom.getGeometryN(i);
+					
+			if (geometryN instanceof Polygon) {
+				Polygon poly = (Polygon) geometryN;					
+				LineString extRing = poly.getExteriorRing();
+				List smoothed = smoothedCoords(extRing);
+
+				if (smoothed.size() > 2) {
+					de.micromata.opengis.kml.v_2_2_0.Polygon kmlPolygon = kmlMulti.createAndAddPolygon();
+				
+					kmlPolygon.createAndSetOuterBoundaryIs()
+								.createAndSetLinearRing()
+								.withCoordinates(smoothed);
+
+					// Baarle-Hertog is _really_ complex
+					int numInt = poly.getNumInteriorRing();
+					for (int j = 0; j < numInt; j++) {
+						LineString inRing = poly.getInteriorRingN(j);
+
+						smoothed = smoothedCoords(inRing);
+						if (smoothed.size() > 2) {
+							kmlPolygon.createAndAddInnerBoundaryIs()
+										.createAndSetLinearRing()
+										.withCoordinates(smoothed);
+						} else {
+							LOG.warn("Interior polygon ring is too small, ignoring");
+						}
+					}
+				} else {
+					LOG.warn("Exterior polygon ring is too small, ignoring");
+				}
+			} else {
+				LOG.warn("Expected polygon in shapefile");
+			}
+		}
+	}
+
+	/**
+	 * Add geo coordinates and labels to KML place.
+	 * The AdminVector shapefile uses multipolygons even for simple shapes,
+	 * and of course also for very complex shapes.
+	 * 
+	 * @param place KML placemark
+	 * @param feature shapefile feature
+	 * @param geom shapefile geometry
+	 */
 	private void createKmlShape(Placemark place, SimpleFeature feature, Geometry geom) {			
 		Object obj = feature.getDefaultGeometry();
-		// by default, the shapefile uses multipolygons, 
-		// which allows for very complex shapes
-
+		
 		if (obj instanceof MultiPolygon) {
 			MultiPolygon mp = (MultiPolygon) geom;
 			// check if the region is one "simple" shape
-			int num = mp.getNumGeometries();
+			int numPoly = mp.getNumGeometries();
 			
-			if (num == 1) {
-				Polygon poly = place.createAndSetPolygon();
-				LinearRing ring = poly.createAndSetOuterBoundaryIs().createAndSetLinearRing();
-				addCoordsSmooth(ring, geom);
+			if (numPoly == 1) {
+				createKmlShapeSimple(place, mp);	
+			} else if (numPoly > 1) {
+				createKmlShapeComplex(place, mp);
 			}
-		
-			if (num > 1) {
-				MultiGeometry multigeom = place.createAndSetMultiGeometry();
-				for (int i = 0; i < num; i++) {
-					Geometry geometryN = mp.getGeometryN(i);
-					Polygon poly = multigeom.createAndAddPolygon();
-					LinearRing ring = poly.createAndSetOuterBoundaryIs().createAndSetLinearRing();
-
-					addCoordsSmooth(ring, geometryN);
-				}
-			}
+		} else {
+			LOG.warn("Expected multipolygon in shapefile");
 		}
 	}				
 
@@ -174,17 +254,19 @@ public class ConverterKML implements Converter {
 	 * Add zipcodes from shapefile
 	 * 
 	 * @param indir
+	 * @param doc KML document
 	 * @throws IOException 
 	 */
-	protected void addZipcodes(Path indir, Kml kml) throws IOException {
+	protected void addZipcodes(Path indir, Document doc) throws IOException {
 		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_1);
-		Document doc = kml.createAndSetDocument();
+		
 		Folder post = doc.createAndAddFolder().withName("POST");
 		
 		try (SimpleFeatureIterator features = collection.features()) {
 			while (features.hasNext()) {
 				SimpleFeature feature = features.next();
 				Placemark place = post.createAndAddPlacemark();
+				place.withStyleUrl("#style");
 				
 				Collection<Property> properties = feature.getProperties(ZIP);
 				if (! properties.isEmpty()) {
@@ -211,14 +293,21 @@ public class ConverterKML implements Converter {
 	public void convert(Path indir, Path outdir) throws IOException {
 		initCRS();
 		
+		// start KML
 		Kml kml = KmlFactory.createKml();
+		Document doc = kml.createAndSetDocument();
+
+		// Create simple style info
+		Style style = doc.createAndAddStyle().withId("style");
+		style.createAndSetLineStyle().setColor("ff0000ff");
+		style.createAndSetPolyStyle().setFill(Boolean.FALSE);
 
 		Path outfile = Paths.get(outdir.toString(), "adminvector.kml");
 		LOG.info("Opening {}", outfile);
 
 		try (Writer w = Files.newBufferedWriter(outfile, StandardCharsets.UTF_8,
 														StandardOpenOption.CREATE)) {
-			addZipcodes(indir, kml);
+			addZipcodes(indir, doc);
 			LOG.info("Writing");
 			kml.marshal(w);
 		}
