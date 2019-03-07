@@ -29,7 +29,6 @@ import de.micromata.opengis.kml.v_2_2_0.Document;
 import de.micromata.opengis.kml.v_2_2_0.Folder;
 import de.micromata.opengis.kml.v_2_2_0.Kml;
 import de.micromata.opengis.kml.v_2_2_0.KmlFactory;
-import de.micromata.opengis.kml.v_2_2_0.LinearRing;
 import de.micromata.opengis.kml.v_2_2_0.MultiGeometry;
 import de.micromata.opengis.kml.v_2_2_0.Placemark;
 import de.micromata.opengis.kml.v_2_2_0.Style;
@@ -43,10 +42,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
@@ -67,7 +68,6 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.geometry.MismatchedDimensionException;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
-import org.opengis.referencing.operation.MathTransform;
 import org.opengis.referencing.operation.TransformException;
 
 import org.slf4j.Logger;
@@ -133,16 +133,15 @@ public class ConverterKML implements Converter {
 				
 		for(int p = 0; p < coords.length; p++) {
 			// naive algorithm, remove points that are very close to the previous one
-			if (Math.abs(coords[p].x - prevX) > 0.004 || Math.abs(coords[p].y - prevY) > 0.004) {
-				double smoothX = Math.round(coords[p].x * 1000) / 1000.0d;
-				double smoothY = Math.round(coords[p].y * 1000) / 1000.0d;
+			if (Math.abs(coords[p].x - prevX) > 0.0004 || Math.abs(coords[p].y - prevY) > 0.0004) {
+				double smoothX = Math.round(coords[p].x * 10000) / 10000.0d;
+				double smoothY = Math.round(coords[p].y * 10000) / 10000.0d;
 				
 				smoothed.add(new de.micromata.opengis.kml.v_2_2_0.Coordinate(smoothX, smoothY));
 				
 				prevX = smoothX;
 				prevY = smoothY;
 			}
-			//}
 		}
 		return smoothed;
 	}
@@ -245,12 +244,35 @@ public class ConverterKML implements Converter {
 		}
 	}				
 
-			
+	/**
+	 * Join the names of the location into one string
+	 * 
+	 * @param feature
+	 * @return 
+	 */
+	private String joinLocationNames(SimpleFeature feature) {
+		StringBuilder builder = new StringBuilder();
+		
+		for(String lang: new String[] { Converter.NL, Converter.FR, Converter.DE }) {
+			Optional<Property> prop = feature.getProperties(lang).stream().findFirst();
+			if (prop.isPresent()) {
+				String str = (String) prop.get().getValue();
+				if (! str.isEmpty()) {
+					if (builder.length() > 0) {
+						builder.append(" / ");
+					}
+					builder.append(str);
+				}
+			}
+		}
+		return builder.toString();
+	}
+
 	/**
 	 * Add zipcodes from shapefile
 	 * 
 	 * @param indir
-	 * @param doc KML document
+	 * @param kmldoc KML document
 	 * @throws IOException 
 	 */
 	protected void addZipcodes(Path indir, Document kmlDoc) throws IOException {
@@ -264,14 +286,15 @@ public class ConverterKML implements Converter {
 				Placemark place = post.createAndAddPlacemark();
 				place.withStyleUrl("#style");
 				
-				String zipcode = "";
-				Collection<Property> properties = feature.getProperties(ZIP);
-				if (! properties.isEmpty()) {
-					Property property = properties.iterator().next();
-					zipcode = (String) property.getValue();
-					place.setName(zipcode);
-				}		
-				
+				// Get the ZIP code, if any
+				Optional<Property> propZip = feature.getProperties(Converter.ZIP).stream().findFirst();
+				if (propZip.isPresent()) {
+					String zipcode = (String) propZip.get().getValue();
+					String name = joinLocationNames(feature);
+
+					place.setName(zipcode + " " + name);
+				}
+					
 				try {
 					// convert to GPS coordinates
 					Geometry lambert08 = (Geometry) feature.getDefaultGeometry();			

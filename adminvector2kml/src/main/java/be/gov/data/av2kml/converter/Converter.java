@@ -39,7 +39,8 @@ public interface Converter {
 
 	// shape files
 	public static final String AD_1 = "AD_1_MunicipalSection";
-
+	public static final String AD_2 = "AD_1_Municipality";
+	
 	// properties inside the shape files
 	public static final String NL = "NameDut";
 	public static final String FR = "NameFre";
