@@ -129,22 +129,17 @@ public class Main {
 			LOG.error("Cannot read input {}", pin);
 			System.exit(-2);
 		}
-		
-		Path pout = Paths.get(outdir);
-		if (! (Files.exists(pout) && Files.isDirectory(pout) && Files.isWritable(pout))) {
-			LOG.error("Cannot write to output dir {}", pout);
-			System.exit(-3);
-		}
-
 		if (Files.isRegularFile(pin) &&  pin.toString().endsWith("zip")) {
 			try {
 				pin = unzipTmpDir(pin);
 			} catch (IOException ioe) {
 				LOG.error("Cannot unzip", ioe);
-				System.exit(-4);
+				System.exit(-3);
 			}
 		}
 		
+		Path pout = Paths.get(outdir);
+
 		Converter conv = new ConverterCSV();
 		try {
 			LOG.info("Converting shapefile {} to {}", pin, pout);

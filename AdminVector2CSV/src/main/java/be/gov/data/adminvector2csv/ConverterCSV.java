@@ -106,7 +106,7 @@ public class ConverterCSV implements Converter {
 			try (SimpleFeatureIterator features = collection.features()) {
 				LOG.info("Writing to {}", outfile);
 							
-				String headers = Stream.of(new String[] { "NIS", "Name NL", "Name FR", "Name DE" })
+				String headers = Stream.of(new String[] { "NIS", "Name NL", "Name FR", "Name DE", "X", "Y" })
 										.collect(Collectors.joining(","));
 				w.println(headers);
 
