@@ -268,14 +268,27 @@ public class ConverterKML implements Converter {
 		return builder.toString();
 	}
 
+	
+	private void addKmlShape(Placemark kmlPlace, SimpleFeature feature) throws IOException {
+		try {
+			// convert to GPS coordinates
+			Geometry lambert08 = (Geometry) feature.getDefaultGeometry();			
+			Geometry wgs84 = JTS.toGeographic(lambert08, LAM08);
+			createKmlShape(kmlPlace, feature, wgs84);
+		} catch (MismatchedDimensionException|TransformException ex) {
+			throw new IOException(ex);
+		}
+	}
+
 	/**
-	 * Add zipcodes from shapefile
+	 * Add zipcodes folder from shapefile
 	 * 
-	 * @param indir
-	 * @param kmldoc KML document
+	 * @param indir shapefile input dir
+	 * @param kmlDoc KML document
+	 * @param startCode starting number
 	 * @throws IOException 
 	 */
-	protected void addZipcodes(Path indir, Document kmlDoc) throws IOException {
+	protected void addZipCodes(Path indir, Document kmlDoc, String startCode) throws IOException {
 		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_1);
 		
 		Folder post = kmlDoc.createAndAddFolder().withName("POST");
@@ -283,53 +296,132 @@ public class ConverterKML implements Converter {
 		try (SimpleFeatureIterator features = collection.features()) {
 			while (features.hasNext()) {
 				SimpleFeature feature = features.next();
-				Placemark place = post.createAndAddPlacemark();
-				place.withStyleUrl("#style");
-				
+
 				// Get the ZIP code, if any
 				Optional<Property> propZip = feature.getProperties(Converter.ZIP).stream().findFirst();
 				if (propZip.isPresent()) {
 					String zipcode = (String) propZip.get().getValue();
-					String name = joinLocationNames(feature);
-
-					place.setName(zipcode + " " + name);
-				}
 					
-				try {
-					// convert to GPS coordinates
-					Geometry lambert08 = (Geometry) feature.getDefaultGeometry();			
-					Geometry wgs84 = JTS.toGeographic(lambert08, LAM08);
+					if (zipcode.startsWith(startCode)) {
+						String name = joinLocationNames(feature);
 
-					createKmlShape(place, feature, wgs84);
-				} catch (MismatchedDimensionException|TransformException ex) {
-					throw new IOException(ex);
+						Placemark place = post.createAndAddPlacemark();
+						place.withStyleUrl("#style");
+						place.setName(zipcode + " " + name);
+							
+						addKmlShape(place, feature);
+					}
 				}
 			}
 		}
 	}
 
-	
-	@Override
-	public void convert(Path indir, Path outdir) throws IOException {
-		initCRS();
-		
+	/**
+	 * 
+	 * @param indir shapefile input directory
+	 * @param outdir KML output directory
+	 * @param startCode starting code
+	 */
+	private void convertZipCodes(Path indir, Path outfile, String startCode) throws IOException {	
 		// start KML
 		Kml kml = KmlFactory.createKml();
 		Document doc = kml.createAndSetDocument();
-
+		
 		// Create simple style info
 		Style style = doc.createAndAddStyle().withId("style");
 		style.createAndSetLineStyle().withColor("ff0000ff");
 		style.createAndSetPolyStyle().withFill(Boolean.FALSE);
 
-		Path outfile = Paths.get(outdir.toString(), "adminvector.kml");
 		LOG.info("Opening {}", outfile);
 
 		try (Writer w = Files.newBufferedWriter(outfile, StandardCharsets.UTF_8,
 														StandardOpenOption.TRUNCATE_EXISTING, 
 														StandardOpenOption.CREATE)) {
-			addZipcodes(indir, doc);
-			LOG.info("Writing");
+			addZipCodes(indir, doc, startCode);
+			LOG.info("Writing to {}", outfile);
+			kml.marshal(w);
+		}
+	}
+
+
+	/**
+	 * Add municipalities folder from shapefile
+	 * 
+	 * @param indir
+	 * @param kmlDoc KML document
+	 * @throws IOException 
+	 */
+	protected void addMunicipalities(Path indir, Document kmlDoc) throws IOException {
+		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_2);
+		
+		Folder post = kmlDoc.createAndAddFolder().withName("MUNICIPALITIES");
+		
+		try (SimpleFeatureIterator features = collection.features()) {
+			while (features.hasNext()) {
+				SimpleFeature feature = features.next();
+
+				String name = joinLocationNames(feature);
+
+				Placemark place = post.createAndAddPlacemark();
+				place.withStyleUrl("#style");
+				place.setName(name);
+							
+				addKmlShape(place, feature);
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * @param indir
+	 * @param outdir
+	 * @throws IOException
+	 */
+	private void convertMunicipalities(Path indir, Path outfile) throws IOException {	
+		// start KML
+		Kml kml = KmlFactory.createKml();
+		Document doc = kml.createAndSetDocument();
+		
+		// Create simple style info
+		Style style = doc.createAndAddStyle().withId("style");
+		style.createAndSetLineStyle().withColor("ff0000ff");
+		style.createAndSetPolyStyle().withFill(Boolean.FALSE);
+
+		LOG.info("Opening {}", outfile);
+
+		try (Writer w = Files.newBufferedWriter(outfile, StandardCharsets.UTF_8,
+														StandardOpenOption.TRUNCATE_EXISTING, 
+														StandardOpenOption.CREATE)) {
+			addMunicipalities(indir, doc);
+			LOG.info("Writing to {}", outfile);
+			kml.marshal(w);
+		}
+	}
+	
+	@Override
+	public void convert(Path indir, Path outdir) throws IOException {
+		initCRS();
+
+		Kml kml = KmlFactory.createKml();
+		Document doc = kml.createAndSetDocument();
+		
+		String mstr =  "municipalities.kml";
+		Path mout = Paths.get(outdir.toString(), mstr);
+		convertMunicipalities(indir, mout);
+		doc.createAndAddNetworkLink().createAndSetLink().withHref(mstr);
+		
+		for (int code = 1; code <= 9; code++) {
+			String zstr = "zipcodes-" + code + ".kml";
+			Path zout = Paths.get(outdir.toString(), zstr);
+			convertZipCodes(indir, zout, String.valueOf(code));
+			doc.createAndAddNetworkLink().createAndSetLink().withHref(zstr);
+		}
+		
+		Path root = Paths.get(outdir.toString(), "doc.kml");
+		try (Writer w = Files.newBufferedWriter(root, StandardCharsets.UTF_8,
+														StandardOpenOption.TRUNCATE_EXISTING, 
+														StandardOpenOption.CREATE)) {
+			LOG.info("Writing to {}", root);
 			kml.marshal(w);
 		}
 	}
