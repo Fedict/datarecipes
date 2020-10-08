@@ -6,4 +6,7 @@ of the municipalities + the geographical coordinates of the municipality center.
 It uses the shapefile with WGS82 ("GPS") coordinates, and creates a ";" separated CSV which should be readable in e.g. MS-Excel.
 An example can be found [here](/example).
 
+X = longitude
+Y = latitude
+
 Tested with AdoptOpenJDK Java 11 on Windows.
