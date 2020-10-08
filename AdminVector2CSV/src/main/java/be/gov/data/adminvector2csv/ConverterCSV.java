@@ -32,9 +32,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.text.Collator;
+import java.text.DecimalFormat;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,7 +48,6 @@ import org.geotools.data.DataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
-import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Point;
 
 import org.opengis.feature.Property;
@@ -71,11 +75,12 @@ public class ConverterCSV implements Converter {
 	 */
 	private SimpleFeatureCollection getFeatures(File indir, String name) throws IOException {
 		// parameters  for geotools
-		Map params = new HashMap<>();
 		File file = new File(indir, name + ".shp");
+		LOG.info("Getting features from {}", file);
+
+		Map params = new HashMap<>();
         params.put("url", file.toURI().toURL());
 		DataStore store = DataStoreFinder.getDataStore(params);
-		
 		SimpleFeatureSource src = store.getFeatureSource(name);
 		return src.getFeatures();
 	}
@@ -89,31 +94,36 @@ public class ConverterCSV implements Converter {
 	 */
 	private String getProperty(SimpleFeature feature, String property) {
 		Optional<Property> prop = feature.getProperties(property).stream().findFirst();
-		return prop.isPresent() ? (String) prop.get().getValue() : "";
+		if (!prop.isPresent()) {
+			return "";
+		}
+		String str = (String) prop.get().getValue();
+		return new String(str.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
 	}
 	
 	@Override
 	public void convert(Path indir, Path outfile) throws IOException {
 		LOG.info("Opening {}", outfile);
-
-		try (PrintWriter w = new PrintWriter(
-								Files.newBufferedWriter(outfile, StandardCharsets.UTF_8,
-															StandardOpenOption.TRUNCATE_EXISTING, 
-															StandardOpenOption.CREATE))) {
-
+		DecimalFormat df = new DecimalFormat("##.####");
+		
+		try (PrintWriter w = new PrintWriter(outfile.toFile())) {
 			SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_2_CENTER);
 		
 			try (SimpleFeatureIterator features = collection.features()) {
 				LOG.info("Writing to {}", outfile);
 							
-				String headers = Stream.of(new String[] { "NIS", "Name NL", "Name FR", "Name DE", "X", "Y" })
-										.collect(Collectors.joining(","));
+				String headers = Stream.of(new String[] { "Name NL", "Name FR", "Name DE", "X", "Y", "NIS" })
+										.collect(Collectors.joining(";"));
 				w.println(headers);
+
+				// make the list ordered, ignore accents
+				Collator collator = Collator.getInstance(Locale.FRENCH);
+				Set<String> list = new TreeSet<>(collator);
 
 				while (features.hasNext()) {
 					SimpleFeature feature = features.next();
 
-					// Get the NIS code, which should alway be present
+					// Get the NIS code, which should alway be present, this is NOT the postal code
 					String nis = getProperty(feature, Converter.NIS);
 
 					// Get the names in 1 or more languages
@@ -121,23 +131,33 @@ public class ConverterCSV implements Converter {
 					String fr = getProperty(feature, Converter.FR);
 					String de = getProperty(feature, Converter.DE);
 
+					// Also add non-translated names
+					if (nl.isEmpty()) {
+						nl = fr;
+					}
+					if (fr.isEmpty()) {
+						fr = nl;
+					}
+					if (de.isEmpty()) {
+						de = fr;
+					}
+
+					// Get the coordinates
 					Object geom = feature.getDefaultGeometry();
 					if (geom instanceof Point) {
-						Coordinate[] coords = ((Point) geom).getCoordinates();
-						if (coords.length == 0) {
-							String x = String.valueOf(coords[0].x);
-							String y = String.valueOf(coords[0].y);
+						Point point = (Point) geom;
+
+						String x = df.format(point.getX());
+						String y = df.format(point.getY());
 	
-							String row = Stream.of(new String[] { nis, nl, fr, de, x, y })
-											.collect(Collectors.joining(","));
-							w.println(row);
-						} else {
-							LOG.error("Empty coordinates found for {}", nis);
-						}
+						String row = Stream.of(new String[] { nl, fr, de, x, y, nis })
+											.collect(Collectors.joining(";"));
+						list.add(row);
 					} else {
 						LOG.error("No coordinates found for {}", nis);
 					}
 				}
+				list.forEach(w::println);	
 			}
 		}
 	}

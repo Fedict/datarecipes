@@ -47,17 +47,11 @@
             <artifactId>gt-main</artifactId>
             <version>23.2</version>
         </dependency>
-        <dependency>
-            <groupId>org.opengis</groupId>
-            <artifactId>geoapi</artifactId>
-            <version>3.0.1</version>
-        </dependency>
-        <dependency>
+		<dependency>
             <groupId>org.geotools</groupId>
-            <artifactId>gt-opengis</artifactId>
+            <artifactId>gt-epsg-wkt</artifactId>
             <version>23.2</version>
-            <type>jar</type>
-        </dependency>
+		</dependency>
     </dependencies>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
