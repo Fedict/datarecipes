@@ -24,9 +24,10 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.5.0:exec</goal>
             </goals>
             <properties>
-                <exec.args>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address} -classpath %classpath be.gov.data.av2csv.Main -i c:\data\downloads\AdminVector_WGS84_shp.zip -o c:\data\</exec.args>
+                <exec.args>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address} -classpath %classpath ${packageClassName} -i c:\data\downloads\AdminVector_WGS84_shp.zip -o c:\data\</exec.args>
                 <exec.executable>java</exec.executable>
                 <jpda.listen>true</jpda.listen>
+				<exec.workingdir>C:\Data\adminvector</exec.workingdir>
             </properties>
         </action>
         <action>
@@ -39,8 +40,9 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:1.5.0:exec</goal>
             </goals>
             <properties>
-                <exec.args>-classpath %classpath be.gov.data.av2csv.Main -i c:\data\downloads\AdminVector_WGS84_shp.zip -o c:\data\</exec.args>
+                <exec.args>-classpath %classpath ${packageClassName} -i c:\data\downloads\AdminVector_WGS84_shp.zip -o c:\data\</exec.args>
                 <exec.executable>java</exec.executable>
+                <exec.workingdir>C:\Data\adminvector</exec.workingdir>
             </properties>
         </action>
     </actions>

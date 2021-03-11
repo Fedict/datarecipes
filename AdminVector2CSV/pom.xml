@@ -3,15 +3,16 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>be.gov.data</groupId>
 	<artifactId>adminvector2csv</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.0</version>
 	<packaging>jar</packaging>
-	<description>Converts NGI AdminVector shapefile to CSV</description>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 		<geotools.version>24.2</geotools.version>
 	</properties>
+	<description>Converts NGI AdminVector shapefile to CSV</description>
+    <name>AdminVector2CSV</name>
 	<repositories>
 		<repository>
 			<id>osgeo</id>
@@ -110,5 +111,4 @@
 			</plugin>
 		</plugins>
 	</build>
-    <name>AdminVector2CSV</name>
 </project>

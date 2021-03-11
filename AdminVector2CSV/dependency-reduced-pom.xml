@@ -2,8 +2,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>be.gov.data</groupId>
-  <artifactId>AdminVector2CSV</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <artifactId>adminvector2csv</artifactId>
+  <name>AdminVector2CSV</name>
+  <version>1.0</version>
   <description>Converts NGI AdminVector shapefile to CSV</description>
   <build>
     <plugins>
@@ -32,7 +33,7 @@
               <transformers>
                 <transformer />
                 <transformer>
-                  <mainClass>be.gov.data.adminvector2csv.Main</mainClass>
+                  <mainClass>be.gov.data.av2csv.Main</mainClass>
                 </transformer>
               </transformers>
             </configuration>
@@ -71,5 +72,6 @@
     <maven.compiler.target>11</maven.compiler.target>
     <maven.compiler.source>11</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <geotools.version>24.2</geotools.version>
   </properties>
 </project>
