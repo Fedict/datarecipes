@@ -25,6 +25,9 @@
  */
 package be.gov.data.av2csv;
 
+import be.gov.data.av2csv.converter.Converter;
+import be.gov.data.av2csv.converter.ConverterCSVMunicipality;
+import be.gov.data.av2csv.converter.ConverterCSVMunicipalityPart;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
