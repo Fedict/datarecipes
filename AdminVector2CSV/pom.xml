@@ -40,17 +40,17 @@
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-shapefile</artifactId>
-            <version>23.2</version>
+            <version>24.2</version>
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-main</artifactId>
-            <version>23.2</version>
+            <version>24.2</version>
         </dependency>
 		<dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-epsg-wkt</artifactId>
-            <version>23.2</version>
+            <version>24.2</version>
 		</dependency>
     </dependencies>
     <properties>
