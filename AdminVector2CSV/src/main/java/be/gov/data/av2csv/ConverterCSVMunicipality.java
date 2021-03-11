@@ -23,12 +23,13 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package be.gov.data.adminvector2csv;
+package be.gov.data.av2csv;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.text.Collator;
+import java.text.DecimalFormat;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
@@ -37,6 +38,7 @@ import java.util.stream.Stream;
 
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
+import org.locationtech.jts.geom.Point;
 
 import org.opengis.feature.simple.SimpleFeature;
 
@@ -45,24 +47,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Convert munipality section to CSV
+ * Convert municipality to CSV
  * 
  * @author Bart Hanssens
  */
-public class ConverterCSVMunicipalityPart extends ConverterCSV {
-	private final static Logger LOG = LoggerFactory.getLogger(ConverterCSVMunicipalityPart.class);
+public class ConverterCSVMunicipality extends ConverterCSV {
+	private final static Logger LOG = LoggerFactory.getLogger(ConverterCSVMunicipality.class);
 	
 	@Override
 	public void convert(Path indir, Path outfile) throws IOException {
 		LOG.info("Opening {}", outfile);
+		DecimalFormat df = new DecimalFormat("##.####");
 		
 		try (PrintWriter w = new PrintWriter(outfile.toFile())) {
-			SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_1);
+			SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_2_CENTER);
 		
 			try (SimpleFeatureIterator features = collection.features()) {
 				LOG.info("Writing to {}", outfile);
 							
-				String headers = Stream.of(new String[] { "Name NL", "Name FR", "Name DE", "Pseudo NIS", "Postal" })
+				String headers = Stream.of(new String[] { "Name NL", "Name FR", "Name DE", "X", "Y", "NIS" })
 										.collect(Collectors.joining(";"));
 				w.println(headers);
 
@@ -74,11 +77,8 @@ public class ConverterCSVMunicipalityPart extends ConverterCSV {
 					SimpleFeature feature = features.next();
 
 					// Get the NIS code, which should alway be present, this is NOT the postal code
-					String nis = getProperty(feature, Converter.PSEUDO);
+					String nis = getProperty(feature, Converter.NIS);
 
-					// Get the postal code
-					String zip = getProperty(feature, Converter.ZIP);
-					
 					// Get the names in 1 or more languages
 					String nl = getProperty(feature, Converter.NL);
 					String fr = getProperty(feature, Converter.FR);
@@ -94,10 +94,21 @@ public class ConverterCSVMunicipalityPart extends ConverterCSV {
 					if (de.isEmpty()) {
 						de = fr;
 					}
-					
-					String row = Stream.of(new String[] { nl, fr, de, nis, zip })
-										.collect(Collectors.joining(";"));
-					list.add(row);
+
+					// Get the coordinates
+					Object geom = feature.getDefaultGeometry();
+					if (geom instanceof Point) {
+						Point point = (Point) geom;
+
+						String x = df.format(point.getX());
+						String y = df.format(point.getY());
+	
+						String row = Stream.of(new String[] { nl, fr, de, x, y, nis })
+											.collect(Collectors.joining(";"));
+						list.add(row);
+					} else {
+						LOG.error("No coordinates found for {}", nis);
+					}
 				}
 				list.forEach(w::println);	
 			}
