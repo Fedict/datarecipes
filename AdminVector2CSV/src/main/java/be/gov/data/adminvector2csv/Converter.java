@@ -35,9 +35,11 @@ import java.nio.file.Path;
  */
 public interface Converter {
 	// subdirectory in zip file containing WGS84
-	public static final String SUBDIR = "/adminvectorwgs";
+	public static final String SUBDIR_WGS = "/adminvectorwgs";
+	public static final String SUBDIR_L08 = "/adminvector08";
 
 	// shape files
+	public static final String AD_1 = "AD_1_MunicipalSection";
 	public static final String AD_2 = "AD_2_Municipality";
 	public static final String AD_2_CENTER = "AD_2_MunicipalityCenter";
 	
@@ -46,6 +48,7 @@ public interface Converter {
 	public static final String NL = "NameDut";
 	public static final String FR = "NameFre";
 	public static final String DE = "NameGer";
+	public static final String PSEUDO = "PseudoNIS";
 	public static final String NIS = "NISCode";
 	public static final String ZIP = "ZipCode";
 

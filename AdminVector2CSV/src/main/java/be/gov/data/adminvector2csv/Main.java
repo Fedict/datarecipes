@@ -54,8 +54,8 @@ public class Main {
 	private final static Logger LOG = LoggerFactory.getLogger(Main.class);
 		
 	private final static Options OPTS = new Options()
-		.addRequiredOption("i", "inputFile", true, "zipped AdminVector WGS84 shapefile")
-		.addRequiredOption("o", "outputFile", true, "CSV output file");
+		.addRequiredOption("i", "inputFile", true, "zipped AdminVector shapefile")
+		.addRequiredOption("o", "outputFile", true, "CSV output directory");
 
 	/**
 	 * Print help info
@@ -94,12 +94,12 @@ public class Main {
 		LOG.info("Unzipping {} to {}", pin, tmpdir);
 
 		try (FileSystem zipfs = FileSystems.newFileSystem(pin, ClassLoader.getSystemClassLoader())) {
-			Path root = zipfs.getPath(Converter.SUBDIR);
+			Path root = zipfs.getPath(Converter.SUBDIR_WGS);
 			if (root == null) {
 				throw new IOException("No adminvector sub directory found");
 			}
 			for (Path zipEntry: Files.walk(root).toArray(Path[]::new)) {
-				String ze = zipEntry.toString().replaceFirst(Converter.SUBDIR, "");
+				String ze = zipEntry.toString().replaceFirst(Converter.SUBDIR_WGS, "");
 				if (! ze.isEmpty()) {
 					Path p = Paths.get(tmpdir.toString(), ze);
 					p.toFile().deleteOnExit();
@@ -138,11 +138,16 @@ public class Main {
 			}
 		}
 		
-		Path pout = Paths.get(outdir);
-
-		Converter conv = new ConverterCSV();
 		try {
-			LOG.info("Converting shapefile {} to {}", pin, pout);
+			Converter conv = new ConverterCSVMunicipality();
+			Path pout = Paths.get(outdir, "munipality.csv");
+			LOG.info("Converting municipality shapefile {} to {}", pin, pout);
+			conv.convert(pin, pout);
+			LOG.info("Done");
+
+			conv = new ConverterCSVMunicipalityPart();
+			pout = Paths.get(outdir, "munipalitypart.csv");
+			LOG.info("Converting municipalitypart shapefile {} to {}", pin, pout);
 			conv.convert(pin, pout);
 			LOG.info("Done");
 		} catch (IOException ioe) {

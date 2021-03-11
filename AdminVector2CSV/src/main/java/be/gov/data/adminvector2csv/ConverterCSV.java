@@ -27,26 +27,15 @@ package be.gov.data.adminvector2csv;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.text.Collator;
-import java.text.DecimalFormat;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
-import org.locationtech.jts.geom.Point;
 
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
@@ -60,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * 
  * @author Bart Hanssens
  */
-public class ConverterCSV implements Converter {
+public abstract class ConverterCSV implements Converter {
 	private final static Logger LOG = LoggerFactory.getLogger(ConverterCSV.class);
 	
 	/**
@@ -71,7 +60,7 @@ public class ConverterCSV implements Converter {
 	 * @return collection of features found in shapefile
 	 * @throws IOException 
 	 */
-	private SimpleFeatureCollection getFeatures(File indir, String name) throws IOException {
+	protected SimpleFeatureCollection getFeatures(File indir, String name) throws IOException {
 		// parameters  for geotools
 		File file = new File(indir, name + ".shp");
 		LOG.info("Getting features from {}", file);
@@ -90,73 +79,12 @@ public class ConverterCSV implements Converter {
 	 * @param property name of the property
 	 * @return string value or empty
 	 */
-	private String getProperty(SimpleFeature feature, String property) {
+	protected String getProperty(SimpleFeature feature, String property) {
 		Optional<Property> prop = feature.getProperties(property).stream().findFirst();
 		if (!prop.isPresent()) {
 			return "";
 		}
 		String str = (String) prop.get().getValue();
 		return new String(str.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
-	}
-	
-	@Override
-	public void convert(Path indir, Path outfile) throws IOException {
-		LOG.info("Opening {}", outfile);
-		DecimalFormat df = new DecimalFormat("##.####");
-		
-		try (PrintWriter w = new PrintWriter(outfile.toFile())) {
-			SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.AD_2_CENTER);
-		
-			try (SimpleFeatureIterator features = collection.features()) {
-				LOG.info("Writing to {}", outfile);
-							
-				String headers = Stream.of(new String[] { "Name NL", "Name FR", "Name DE", "X", "Y", "NIS" })
-										.collect(Collectors.joining(";"));
-				w.println(headers);
-
-				// make the list ordered, ignore accents
-				Collator collator = Collator.getInstance(Locale.FRENCH);
-				Set<String> list = new TreeSet<>(collator);
-
-				while (features.hasNext()) {
-					SimpleFeature feature = features.next();
-
-					// Get the NIS code, which should alway be present, this is NOT the postal code
-					String nis = getProperty(feature, Converter.NIS);
-
-					// Get the names in 1 or more languages
-					String nl = getProperty(feature, Converter.NL);
-					String fr = getProperty(feature, Converter.FR);
-					String de = getProperty(feature, Converter.DE);
-
-					// Also add non-translated names
-					if (nl.isEmpty()) {
-						nl = fr;
-					}
-					if (fr.isEmpty()) {
-						fr = nl;
-					}
-					if (de.isEmpty()) {
-						de = fr;
-					}
-
-					// Get the coordinates
-					Object geom = feature.getDefaultGeometry();
-					if (geom instanceof Point) {
-						Point point = (Point) geom;
-
-						String x = df.format(point.getX());
-						String y = df.format(point.getY());
-	
-						String row = Stream.of(new String[] { nl, fr, de, x, y, nis })
-											.collect(Collectors.joining(";"));
-						list.add(row);
-					} else {
-						LOG.error("No coordinates found for {}", nis);
-					}
-				}
-				list.forEach(w::println);	
-			}
-		}
 	}
 }
