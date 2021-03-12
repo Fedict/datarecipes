@@ -38,7 +38,7 @@
         </dependency>
 		<dependency>
             <groupId>org.geotools</groupId>
-            <artifactId>gt-geopkg</artifactId>
+            <artifactId>gt-geojsondatastore</artifactId>
             <version>24.2</version>
         </dependency>
 		<dependency>

@@ -29,9 +29,14 @@ import be.gov.data.populationperzip.reader.PopulationReader;
 import be.gov.data.populationperzip.reader.PostalReader;
 import be.gov.data.populationperzip.reader.SectorReader;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
 
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -60,32 +65,48 @@ public class Main implements Callable<Integer> {
 	@Option(names = {"-o", "--output"}, required = true, arity = "1", description = "Output file")
     private Path outFile;
 
-
-	@Override
-    public Integer call() throws Exception {
+	
+	private boolean checkFiles() {
 		if (!sectorFile.toFile().exists()) {
 			LOG.log(Level.SEVERE, "File {0} does not exist", sectorFile);
-			return -1;
+			return false;
 		}
 		if (!populationFile.toFile().exists()) {
 			LOG.log(Level.SEVERE, "File {0} does not exist", populationFile);
-			return -1;
+			return false;
 		}
 		if (!zipcodeFile.toFile().exists()) {
 			LOG.log(Level.SEVERE, "File {0} does not exist", zipcodeFile);
+			return false;
+		}
+		return true;
+	}
+	
+
+	private Map.Entry<String,String> findZipCode(Map<String, MultiPolygon> zipcodes, Map.Entry<String, Point> center) {
+		Optional<Map.Entry<String, MultiPolygon>> zip = zipcodes.entrySet().stream()
+				.filter(e -> e.getValue().contains(center.getValue()))
+				.findFirst();
+		return new HashMap.SimpleEntry<String,String>(center.getKey(), zip.isPresent() ? zip.get().getKey() : "");
+	}
+
+	@Override
+    public Integer call() throws Exception {
+		if (!checkFiles()) {
 			return -1;
 		}
-
+		
 		PostalReader postalReader = new PostalReader();
-		postalReader.read(zipcodeFile);
+		Map<String, MultiPolygon> zipcodes = postalReader.read(zipcodeFile);
 
 		PopulationReader populationReader = new PopulationReader();
-		populationReader.read(populationFile);
+		Map<String, Integer> population = populationReader.read(populationFile);
 		
 		SectorReader sectorReader = new SectorReader();
-		sectorReader.read(sectorFile);
+		Map<String, Point> sectors = sectorReader.read(sectorFile);
 
-				
+		sectors.entrySet().stream().map(e -> findZipCode(zipcodes, e))
+			.forEach(e -> System.err.println(e.getKey() + " " + e.getValue()));
         return 0;
     }
 

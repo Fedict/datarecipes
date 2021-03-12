@@ -27,10 +27,14 @@ package be.gov.data.populationperzip.reader;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
 import org.opengis.feature.simple.SimpleFeature;
 
 /**
@@ -40,27 +44,33 @@ import org.opengis.feature.simple.SimpleFeature;
  */
 public class SectorReader extends GeoReader {
 	private final static Logger LOG = Logger.getLogger(SectorReader.class.getName());
+	
+	public static final String NIS = "cd_sector";
 
 	/**
 	 * 
-	 * @param indir
+	 * @param file
+	 * @return 
 	 * @throws IOException 
 	 */
-	public void read(Path indir) throws IOException {
-		SimpleFeatureCollection collection = getFeatures(indir.toFile());
+	public Map<String,Point> read(Path file) throws IOException {
+		HashMap<String, Point>  map = new HashMap<>();
+
+		SimpleFeatureCollection collection = getFeatures(file.toFile());
 		
 		try (SimpleFeatureIterator features = collection.features()) {
 			while (features.hasNext()) {
 				SimpleFeature feature = features.next();
 				
 				// Get the NIS code, which should alway be present, this is NOT the postal code
-				//String nis = getProperty(feature, SectorReader.NIS);
+				String nis = getProperty(feature, NIS);
 
 				// Get the coordinates
-			//	Geometry geom = (Geometry) feature.getDefaultGeometry();
-			//	DirectPosition centroid = geom.getCentroid();
-			//	double[] coordinate = centroid.getCoordinate();
+				Geometry geom = (Geometry) feature.getDefaultGeometry();
+				Point center = geom.getCentroid();
+				map.put(nis, center);
 			}
 		}
+		return map;
 	}
 }
