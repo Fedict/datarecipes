@@ -38,6 +38,11 @@
         </dependency>
 		<dependency>
             <groupId>org.geotools</groupId>
+            <artifactId>gt-geopkg</artifactId>
+            <version>24.2</version>
+        </dependency>
+		<dependency>
+            <groupId>org.geotools</groupId>
             <artifactId>gt-main</artifactId>
             <version>24.2</version>
         </dependency>

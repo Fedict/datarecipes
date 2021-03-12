@@ -37,6 +37,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 
 
 /**
@@ -46,6 +47,8 @@ import java.util.Map;
  * @author Bart Hanssens
  */
 public class PopulationReader {	
+	private final static Logger LOG = Logger.getLogger(PopulationReader.class.getName());
+
 	/**
 	 * Read CSV file into map
 	 * 

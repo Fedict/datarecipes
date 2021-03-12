@@ -29,7 +29,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.logging.Logger
+	;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.locationtech.jts.geom.MultiPolygon;
@@ -41,9 +42,11 @@ import org.opengis.feature.simple.SimpleFeature;
  * @see https://www.geo.be/catalog/details/9738c7c0-5255-11ea-8895-34e12d0f0423
  * @author Bart Hanssens
  */
-public class PostalReader extends ShapefileReader {
-	public final String ZIPCODE = "nouveau_PO";
+public class PostalReader extends GeoReader {
+	private final static Logger LOG = Logger.getLogger(PostalReader.class.getName());
 	
+	public static final String ZIPCODE = "nouveau_PO";
+
 	/**
 	 * Read postal sectors shapefile into map
 	 * 

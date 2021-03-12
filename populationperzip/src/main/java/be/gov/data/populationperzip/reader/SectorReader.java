@@ -27,20 +27,20 @@ package be.gov.data.populationperzip.reader;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.logging.Logger;
 
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.geometry.DirectPosition;
-import org.opengis.geometry.Geometry;
 
 /**
  * Read statistic sector shapefiles
  * 
  * @author Bart Hanssens
  */
-public class SectorReader extends ShapefileReader {
-	
+public class SectorReader extends GeoReader {
+	private final static Logger LOG = Logger.getLogger(SectorReader.class.getName());
+
 	/**
 	 * 
 	 * @param indir
@@ -57,9 +57,9 @@ public class SectorReader extends ShapefileReader {
 				//String nis = getProperty(feature, SectorReader.NIS);
 
 				// Get the coordinates
-				Geometry geom = (Geometry) feature.getDefaultGeometry();
-				DirectPosition centroid = geom.getCentroid();
-				double[] coordinate = centroid.getCoordinate();
+			//	Geometry geom = (Geometry) feature.getDefaultGeometry();
+			//	DirectPosition centroid = geom.getCentroid();
+			//	double[] coordinate = centroid.getCoordinate();
 			}
 		}
 	}

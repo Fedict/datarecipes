@@ -32,24 +32,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import java.util.logging.Logger
+	;
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureSource;
-
+import org.geotools.util.URLs;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 
 /**
- * Helper class to read shapefiles
+ * Helper class for reading GeoJSON or ESRI Shapefile
  * 
  * @author Bart Hanssens
  */
-public abstract class ShapefileReader {
-	private final static Logger LOG = Logger.getLogger(ShapefileReader.class.getName());
-
+public abstract class GeoReader {
+	private final static Logger LOG = Logger.getLogger(GeoReader.class.getName());
+	
 	/**
 	 * Get a collection of "features", e.g. shapes
 	 * 
@@ -60,13 +60,12 @@ public abstract class ShapefileReader {
 	protected SimpleFeatureCollection getFeatures(File file) throws IOException {
 		// parameters  for geotools
 		LOG.log(Level.INFO, "Getting features from {0}", file);
-		String name = file.getName();
-		if (name.endsWith(".shp")) {
-			name = name.substring(0, name.length() - 4);
-		}
+
+		// name has to be without extension
+		String name = file.getName().replaceAll("\\.(geojson|sqlite|gpkg|shp)", "");
 
 		Map params = new HashMap<>();
-        params.put("url", file.toURI().toURL());
+        params.put("url", URLs.fileToUrl(file));
 		DataStore store = DataStoreFinder.getDataStore(params);
 		SimpleFeatureSource src = store.getFeatureSource(name);
 		SimpleFeatureCollection coll = src.getFeatures();
