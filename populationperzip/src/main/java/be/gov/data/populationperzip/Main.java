@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 
@@ -81,13 +82,20 @@ public class Main implements Callable<Integer> {
 		}
 		return true;
 	}
-	
 
 	private Map.Entry<String,String> findZipCode(Map<String, MultiPolygon> zipcodes, Map.Entry<String, Point> center) {
 		Optional<Map.Entry<String, MultiPolygon>> zip = zipcodes.entrySet().stream()
 				.filter(e -> e.getValue().contains(center.getValue()))
 				.findFirst();
-		return new HashMap.SimpleEntry<String,String>(center.getKey(), zip.isPresent() ? zip.get().getKey() : "");
+		return new HashMap.SimpleEntry<>(center.getKey(), zip.isPresent() ? zip.get().getKey() : "");
+	}
+	
+
+	private Map.Entry<String,Integer> findPopulation(Map<String, Integer> population, Map.Entry<String, String> sector) {
+		Optional<Map.Entry<String, Integer>> pop = population.entrySet().stream()
+				.filter(e -> e.getKey().equals(sector.getKey()))
+				.findFirst();
+		return new HashMap.SimpleEntry<>(sector.getValue(), pop.isPresent() ? pop.get().getValue() : 0);
 	}
 
 	@Override
@@ -105,8 +113,14 @@ public class Main implements Callable<Integer> {
 		SectorReader sectorReader = new SectorReader();
 		Map<String, Point> sectors = sectorReader.read(sectorFile);
 
-		sectors.entrySet().stream().map(e -> findZipCode(zipcodes, e))
-			.forEach(e -> System.err.println(e.getKey() + " " + e.getValue()));
+		Map<String, Integer> result = sectors.entrySet().stream()
+										.map(e -> findZipCode(zipcodes, e))
+										.map(e -> findPopulation(population, e))
+										.collect(Collectors.groupingBy(e -> e.getKey(),
+												Collectors.summingInt(e -> e.getValue())));
+		
+		result.entrySet().stream().sorted((a,b) -> a.getKey().compareTo(b.getKey()))
+									.forEach(e -> System.err.println(e.getKey() + "," + e.getValue()));
         return 0;
     }
 
