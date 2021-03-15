@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -43,8 +42,6 @@ import org.opengis.feature.simple.SimpleFeature;
  * @author Bart Hanssens
  */
 public class SectorReader extends GeoReader {
-	private final static Logger LOG = Logger.getLogger(SectorReader.class.getName());
-	
 	public static final String NIS = "cd_sector";
 
 	/**
@@ -67,7 +64,7 @@ public class SectorReader extends GeoReader {
 
 				// Get the coordinates
 				Geometry geom = (Geometry) feature.getDefaultGeometry();
-				Point center = geom.getCentroid();
+				Point center = geom.getInteriorPoint();
 				map.put(nis, center);
 			}
 		}

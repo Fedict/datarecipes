@@ -66,7 +66,7 @@ public class PostalReader extends GeoReader {
 				
 				String zipcode = getProperty(feature, ZIPCODE);
 				MultiPolygon geom = (MultiPolygon) feature.getDefaultGeometry();
-				
+
 				// check for existing / multiple regions with same zipcode
 				MultiPolygon mp = map.get(zipcode);
 				if (mp != null) {
