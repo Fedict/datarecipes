@@ -85,8 +85,13 @@ public class Main implements Callable<Integer> {
 
 	private Map.Entry<String,String> findZipCode(Map<String, MultiPolygon> zipcodes, Map.Entry<String, Point> center) {
 		Optional<Map.Entry<String, MultiPolygon>> zip = zipcodes.entrySet().stream()
-				.filter(e -> e.getValue().contains(center.getValue()))
+				.filter(e -> center.getValue().within(e.getValue()))
 				.findFirst();
+		if (!zip.isPresent()) {
+			LOG.log(Level.WARNING, "No zipcode for sector {0} {1}", 
+									new Object[] { center.getKey(), center.getValue().toText() });
+			//zipcodes.entrySet().forEach(e -> System.err.println(e.getValue().toText()));
+		}
 		return new HashMap.SimpleEntry<>(center.getKey(), zip.isPresent() ? zip.get().getKey() : "");
 	}
 	
@@ -95,6 +100,9 @@ public class Main implements Callable<Integer> {
 		Optional<Map.Entry<String, Integer>> pop = population.entrySet().stream()
 				.filter(e -> e.getKey().equals(sector.getKey()))
 				.findFirst();
+		if (!pop.isPresent()) {
+			LOG.log(Level.WARNING, "No population sector for {0}", sector.getKey());
+		}
 		return new HashMap.SimpleEntry<>(sector.getValue(), pop.isPresent() ? pop.get().getValue() : 0);
 	}
 

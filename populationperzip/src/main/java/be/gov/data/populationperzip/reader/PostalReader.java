@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger
 	;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -64,7 +65,14 @@ public class PostalReader extends GeoReader {
 				SimpleFeature feature = features.next();
 				
 				String zipcode = getProperty(feature, ZIPCODE);
-				MultiPolygon geom =  (MultiPolygon) feature.getDefaultGeometry();
+				MultiPolygon geom = (MultiPolygon) feature.getDefaultGeometry();
+				
+				// check for existing / multiple regions with same zipcode
+				MultiPolygon mp = map.get(zipcode);
+				if (mp != null) {
+					LOG.log(Level.INFO, "Multiple regions with same zipcode {0}", zipcode);
+					geom = (MultiPolygon) geom.union(mp);
+				}
 
 				map.put(zipcode, geom);
 			}
