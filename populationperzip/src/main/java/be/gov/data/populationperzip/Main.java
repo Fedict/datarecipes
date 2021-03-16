@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -118,7 +119,6 @@ public class Main implements Callable<Integer> {
 	 * @param sector statistical sector
 	 * @return population as a map entry
 	 */
-
 	private Map.Entry<String,Integer> findPopulation(Map<String, Integer> population, Map.Entry<String, String> sector) {
 		Optional<Map.Entry<String, Integer>> pop = population.entrySet().stream()
 				.filter(e -> e.getKey().equals(sector.getKey()))
@@ -129,6 +129,21 @@ public class Main implements Callable<Integer> {
 		return new HashMap.SimpleEntry<>(sector.getValue(), pop.isPresent() ? pop.get().getValue() : 0);
 	}
 
+	/**
+	 * Find population sectors not listed in the statistical sectors shapefile.
+	 * This is due to the people who cannot be "assigned" to a specific sector, often a fake "ZZZZ" sector is used
+	 * 
+	 * @param population population per sector
+	 * @param sector statistical sectors
+	 */
+	private void findMissing(Map<String, Integer> population, Map<String, Point> sector) {
+		Set<String> unmapped = population.keySet();
+		unmapped.removeAll(sector.keySet());
+		
+		for(String k: unmapped) {
+			LOG.log(Level.WARNING, "No shape for sector {0} with population {1}", new Object[] { k, population.get(k) });
+		}
+	}
 
 	/**
 	 * Write the results to a file
@@ -179,6 +194,8 @@ public class Main implements Callable<Integer> {
 										.filter(e -> e.getValue() != 0) // remove uninhabitated sectors
 										.collect(Collectors.groupingBy(e -> e.getKey(),
 												Collectors.summingInt(e -> e.getValue())));
+
+		findMissing(population, sectors);
 
 		writeResults(result, outFile);
 
