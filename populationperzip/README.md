@@ -16,7 +16,17 @@ There is no one-to-one relation between postal codes and municipalities or stati
 
 ## Main tool
 
-[GeoTools](https://geotools.org/) open source java library.
+[GeoTools](https://geotools.org/) open source java library. JDK11
+
+## Running
+
+Download and unzip the source files.
+
+Compile the tool using maven and JDK 11.
+
+```
+java -jar populationperzip-1.0-SNAPSHOT.jar -s sh_statbel_statistical_sectors_20200101.geojson -z postaldistricts.shp -p OPENDATA_SECTOREN_2020.txt -o population_per_postal.csv
+```
 
 ## Approach
 
