@@ -25,19 +25,13 @@
  */
 package be.gov.data.populationperzip.reader;
 
-import com.opencsv.CSVIterator;
-import com.opencsv.CSVParser;
-import com.opencsv.CSVParserBuilder;
-import com.opencsv.CSVReader;
-import com.opencsv.CSVReaderBuilder;
-import com.opencsv.exceptions.CsvValidationException;
+import java.io.BufferedReader;
 
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 
 /**
@@ -47,8 +41,6 @@ import java.util.logging.Logger;
  * @author Bart Hanssens
  */
 public class PopulationReader {	
-	private final static Logger LOG = Logger.getLogger(PopulationReader.class.getName());
-
 	/**
 	 * Read CSV file into map
 	 * 
@@ -59,19 +51,11 @@ public class PopulationReader {
 	public Map<String, Integer> read(Path file) throws IOException {
 		HashMap<String, Integer> map = new HashMap<>();
 
-		CSVParser parser = new CSVParserBuilder().withSeparator(';').build();
-		CSVReader reader = new CSVReaderBuilder(new FileReader(file.toFile()))
-										.withSkipLines(1)
-										.withCSVParser(parser).build();
-		try {
-			CSVIterator iter = new CSVIterator(reader);
-			while(iter.hasNext()) {
-				String[] row = iter.next();
-				// get NIS-code and population
-				map.put(row[3], Integer.valueOf(row[9]));
-			}	
-		} catch (CsvValidationException ex) {
-			throw new IOException(ex);
+		try (BufferedReader reader = Files.newBufferedReader(file)) {
+			reader.lines()
+				.skip(1)
+				.map(l -> l.split(";"))
+				.forEach(row -> map.put(row[3], Integer.valueOf(row[9])));
 		}
 		return map;
 	}

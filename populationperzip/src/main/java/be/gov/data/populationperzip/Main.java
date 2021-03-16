@@ -28,18 +28,24 @@ package be.gov.data.populationperzip;
 import be.gov.data.populationperzip.reader.PopulationReader;
 import be.gov.data.populationperzip.reader.PostalReader;
 import be.gov.data.populationperzip.reader.SectorReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
-
 import picocli.CommandLine;
+
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -50,51 +56,68 @@ import picocli.CommandLine.Option;
  * @author Bart Hanssens
  */
 @Command(name = "population-per-zip", mixinStandardHelpOptions = true, version = "1.0",
-         description = "Calculates the number of people per zip code.")
+         description = "Create a list of the number of people per zip code, based on several files.")
 public class Main implements Callable<Integer> {
 	private final static Logger LOG = Logger.getLogger(Main.class.getName());
 
-	@Option(names = {"-s", "--sectors"}, description = "Statistical sectors file")
+	@Option(names = {"-s", "--sectors"}, description = "Statistical sectors file (GeoJSON)")
     private Path sectorFile;
 
-	@Option(names = {"-p", "--population"}, required = true, arity = "1", description = "Population file")
+	@Option(names = {"-p", "--population"}, required = true, arity = "1", description = "Population file (TXT)")
     private Path populationFile;
 
-	@Option(names = {"-z", "--zipcode"}, required = true, arity = "1", description = "ZIPcode (bPost) file")
+	@Option(names = {"-z", "--zipcode"}, required = true, arity = "1", description = "ZIPcode file (SHP)")
     private Path zipcodeFile;
 
-	@Option(names = {"-o", "--output"}, required = true, arity = "1", description = "Output file")
+	@Option(names = {"-o", "--output"}, required = true, arity = "1", description = "Output file (CSV)")
     private Path outFile;
 
 	
-	private boolean checkFiles() {
-		if (!sectorFile.toFile().exists()) {
-			LOG.log(Level.SEVERE, "File {0} does not exist", sectorFile);
+	/**
+	 * Check if input file exist and in the expected file format
+	 * 
+	 * @param file file name
+	 * @param format file extension
+	 * @return true when checks are passed
+	 */
+	private boolean checkFile(Path file, String format) {
+		if (!file.toFile().exists()) {
+			LOG.log(Level.SEVERE, "File {0} does not exist", file);
 			return false;
 		}
-		if (!populationFile.toFile().exists()) {
-			LOG.log(Level.SEVERE, "File {0} does not exist", populationFile);
-			return false;
-		}
-		if (!zipcodeFile.toFile().exists()) {
-			LOG.log(Level.SEVERE, "File {0} does not exist", zipcodeFile);
+		if (!file.toString().endsWith(format)) {
+			LOG.log(Level.SEVERE, "File {0} not in {1} format", new Object[] { file, format });
 			return false;
 		}
 		return true;
 	}
 
-	private Map.Entry<String,String> findZipCode(Map<String, MultiPolygon> zipcodes, Map.Entry<String, Point> center) {
+	/**
+	 * Find zip code for a given statistical sector
+	 * 
+	 * @param zipcodes map of all zip codes
+	 * @param sector center of the sector
+	 * @return zipcode as a map entry
+	 */
+	private Map.Entry<String,String> findZipCode(Map<String, MultiPolygon> zipcodes, Map.Entry<String, Point> sector) {
 		Optional<Map.Entry<String, MultiPolygon>> zip = zipcodes.entrySet().stream()
-				.filter(e -> center.getValue().within(e.getValue()))
+				.filter(e -> sector.getValue().within(e.getValue()))
 				.findFirst();
 		if (!zip.isPresent()) {
 			LOG.log(Level.WARNING, "No zipcode for sector {0} {1}", 
-									new Object[] { center.getKey(), center.getValue().toText() });
-			//zipcodes.entrySet().forEach(e -> System.err.println(e.getValue().toText()));
+									new Object[] { sector.getKey(), sector.getValue().toText() });
 		}
-		return new HashMap.SimpleEntry<>(center.getKey(), zip.isPresent() ? zip.get().getKey() : "");
+		return new HashMap.SimpleEntry<>(sector.getKey(), zip.isPresent() ? zip.get().getKey() : "");
 	}
 	
+
+	/**
+	 * Find population for a given statistical sector
+	 * 
+	 * @param population population per sector
+	 * @param sector statistical sector
+	 * @return population as a map entry
+	 */
 
 	private Map.Entry<String,Integer> findPopulation(Map<String, Integer> population, Map.Entry<String, String> sector) {
 		Optional<Map.Entry<String, Integer>> pop = population.entrySet().stream()
@@ -106,12 +129,40 @@ public class Main implements Callable<Integer> {
 		return new HashMap.SimpleEntry<>(sector.getValue(), pop.isPresent() ? pop.get().getValue() : 0);
 	}
 
+
+	/**
+	 * Write the results to a file
+	 * 
+	 * @param results 
+	 */
+	private void writeResults(Map<String, Integer> results, Path file) {
+		List<String[]> rows = results.entrySet().stream()
+			.map(e -> new String[] { e.getKey(), e.getValue().toString() })
+			.sorted((a,b) -> a[0].compareTo(b[0]))
+			.collect(Collectors.toList());
+		
+		try(BufferedWriter w = Files.newBufferedWriter(file)) {
+			LOG.log(Level.INFO, "Writing results to {0}", file);
+
+			w.write("Postal;Population");
+			w.newLine();
+
+			for (String[] row: rows) {
+				w.write(row[0] + ";" + row[1]);
+				w.newLine();
+			}
+		} catch (IOException ioe) {
+			LOG.log(Level.SEVERE, "Could not write results to {0}: {1}", new Object[] { file, ioe.getMessage() });
+		}
+	}
+	
+		
 	@Override
     public Integer call() throws Exception {
-		if (!checkFiles()) {
+		if (! (checkFile(sectorFile, "geojson") && checkFile(populationFile, "txt") && checkFile(zipcodeFile, "shp"))) {
 			return -1;
 		}
-		
+		// read all files
 		PostalReader postalReader = new PostalReader();
 		Map<String, MultiPolygon> zipcodes = postalReader.read(zipcodeFile);
 
@@ -121,14 +172,16 @@ public class Main implements Callable<Integer> {
 		SectorReader sectorReader = new SectorReader();
 		Map<String, Point> sectors = sectorReader.read(sectorFile);
 
+		// map the info based on sector ID
 		Map<String, Integer> result = sectors.entrySet().stream()
 										.map(e -> findZipCode(zipcodes, e))
 										.map(e -> findPopulation(population, e))
+										.filter(e -> e.getValue() != 0) // remove uninhabitated sectors
 										.collect(Collectors.groupingBy(e -> e.getKey(),
 												Collectors.summingInt(e -> e.getValue())));
-		
-		result.entrySet().stream().sorted((a,b) -> a.getKey().compareTo(b.getKey()))
-									.forEach(e -> System.err.println(e.getKey() + "," + e.getValue()));
+
+		writeResults(result, outFile);
+
         return 0;
     }
 

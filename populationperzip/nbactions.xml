@@ -10,7 +10,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:3.0.0:exec</goal>
             </goals>
             <properties>
-                <exec.args>-classpath %classpath be.gov.data.populationperzip.Main -s C:\Data\pop\sectors\sh_statbel_statistical_sectors_20200101.geojson -z c:\data\pop\postal\postaldistricts.shp -p c:\data\pop\population\OPENDATA_SECTOREN_2020.txt -o c:\data</exec.args>
+                <exec.args>-classpath %classpath be.gov.data.populationperzip.Main -s C:\Data\pop\sectors\sh_statbel_statistical_sectors_20200101.geojson -z c:\data\pop\postal\postaldistricts.shp -p c:\data\pop\population\OPENDATA_SECTOREN_2020.txt -o c:\data\population_per_postal.csv</exec.args>
                 <exec.executable>java</exec.executable>
                 <exec.workingdir>c:\data</exec.workingdir>
             </properties>
@@ -25,7 +25,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:3.0.0:exec</goal>
             </goals>
             <properties>
-                <exec.args>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address} -classpath %classpath be.gov.data.populationperzip.Main -s C:\Data\pop\sectors\sh_statbel_statistical_sectors_20200101.geojson -z c:\data\pop\postal\postaldistricts.shp -p c:\data\pop\population\OPENDATA_SECTOREN_2020.txt -o c:\data</exec.args>
+                <exec.args>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address} -classpath %classpath be.gov.data.populationperzip.Main -s C:\Data\pop\sectors\sh_statbel_statistical_sectors_20200101.geojson -z c:\data\pop\postal\postaldistricts.shp -p c:\data\pop\population\OPENDATA_SECTOREN_2020.txt -o c:\data\population_per_postal.csv</exec.args>
                 <exec.executable>java</exec.executable>
                 <jpda.listen>true</jpda.listen>
                 <exec.workingdir>c:\data</exec.workingdir>
@@ -41,7 +41,7 @@
                 <goal>org.codehaus.mojo:exec-maven-plugin:3.0.0:exec</goal>
             </goals>
             <properties>
-                <exec.args>-classpath %classpath be.gov.data.populationperzip.Main -s C:\Data\pop\sectors\sh_statbel_statistical_sectors_20200101.geojson -z c:\data\pop\postal\postaldistricts.shp -p c:\data\pop\population\OPENDATA_SECTOREN_2020.txt -o c:\data</exec.args>
+                <exec.args>-classpath %classpath be.gov.data.populationperzip.Main -s C:\Data\pop\sectors\sh_statbel_statistical_sectors_20200101.geojson -z c:\data\pop\postal\postaldistricts.shp -p c:\data\pop\population\OPENDATA_SECTOREN_2020.txt -o c:\data\population_per_postal.csv</exec.args>
                 <exec.executable>java</exec.executable>
                 <exec.workingdir>c:\data</exec.workingdir>
             </properties>

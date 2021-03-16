@@ -5,7 +5,7 @@
   <artifactId>populationperzip</artifactId>
   <name>Population per zipcode</name>
   <version>1.0-SNAPSHOT</version>
-  <description>(Approximation of) population by zipcode, based on statistical sectors and</description>
+  <description>(Approximation of) population by zipcode, based on statistical sectors and postal codes</description>
   <build>
     <plugins>
       <plugin>

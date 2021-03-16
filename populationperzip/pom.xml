@@ -11,7 +11,7 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
 	<name>Population per zipcode</name>
-	<description>(Approximation of) population by zipcode, based on statistical sectors and</description>
+	<description>(Approximation of) population by zipcode, based on statistical sectors and postal codes</description>
 	<repositories>
 		<repository>
 			<id>osgeo</id>
@@ -51,11 +51,6 @@
 			<artifactId>gt-epsg-wkt</artifactId>
 			<version>24.2</version>
 		</dependency>
-        <dependency>
-            <groupId>com.opencsv</groupId>
-            <artifactId>opencsv</artifactId>
-            <version>5.3</version>
-        </dependency>
     </dependencies>
 	<build>
         <plugins>
