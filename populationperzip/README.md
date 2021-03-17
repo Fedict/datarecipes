@@ -1,4 +1,4 @@
-# Create a list of inhabitants per postal codes
+# Create a list of inhabitants per postal code
 
 ## Description
 
