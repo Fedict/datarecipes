@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class ConverterCSV implements Converter {
 	private final static Logger LOG = LoggerFactory.getLogger(ConverterCSV.class);
+	//private final Datastore store;
 	
 	/**
 	 * Get a collection of "features", e.g. shapes of municipalities
@@ -69,7 +70,9 @@ public abstract class ConverterCSV implements Converter {
         params.put("url", file.toURI().toURL());
 		DataStore store = DataStoreFinder.getDataStore(params);
 		SimpleFeatureSource src = store.getFeatureSource(name);
-		return src.getFeatures();
+		SimpleFeatureCollection coll = src.getFeatures();
+		store.dispose();
+		return coll;
 	}
 
 	/**

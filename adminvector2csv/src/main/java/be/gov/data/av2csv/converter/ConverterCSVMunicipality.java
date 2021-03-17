@@ -110,7 +110,7 @@ public class ConverterCSVMunicipality extends ConverterCSV {
 						LOG.error("No coordinates found for {}", nis);
 					}
 				}
-				list.forEach(w::println);	
+				list.forEach(w::println);
 			}
 		}
 	}
