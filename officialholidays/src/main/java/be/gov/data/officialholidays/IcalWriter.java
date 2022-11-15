@@ -27,14 +27,25 @@ package be.gov.data.officialholidays;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.SortedSet;
+import java.util.UUID;
 
 /**
- *
- * @author Bart.Hanssens
+ * Write a set op holidays to a ICS / vCalendar file
+ * 
+ * @author Bart Hanssens
  */
 public class IcalWriter {
+	
+	/**
+	 * Write start of ICS file
+	 * 
+	 * @param w
+	 * @throws IOException 
+	 */
 	private void writeStart(Writer w) throws IOException {
 		w.write("BEGIN:VCALENDAR\r\n");
 		w.write("VERSION:2.0\r\n");
@@ -43,9 +54,20 @@ public class IcalWriter {
 		w.write("METHOD:PUBLISH\r\n");
 		w.flush();
 	}
-	
+
+	/**
+	 * Write a holiday to the calendar file
+	 * 
+	 * @param w
+	 * @param h holiday
+	 * @param lang language code
+	 * @throws IOException 
+	 */
 	private void writeDay(Writer w, Holiday h, String lang) throws IOException {
+		String now = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString().replace("-", "").replace(":","");
 		w.write("BEGIN:VEVENT\r\n");
+		w.write("UID:" + UUID.randomUUID().toString() + "@data.gov.be\r\n");
+		w.write("DTSTAMP:" + now + "\r\n");
 		
 		switch(lang) {
 			case "nl" -> w.write("SUMMARY;LANGUAGE=nl-be:" + h.nl() + "\r\n");
@@ -58,17 +80,23 @@ public class IcalWriter {
 		w.flush();
 	}
 
+	/**
+	 * Write the end of the ICS / vCalendar file
+	 * 
+	 * @param w
+	 * @throws IOException 
+	 */
 	private void writeEnd(Writer w) throws IOException {
 		w.write("END:VCALENDAR\r\n");
 		w.flush();
 	}
 
 	/**
-	 * Write days to vcal file
+	 * Write days to iCalendar/ICS file
 	 * 
 	 * @param w
 	 * @param days
-	 * @param language code (nl, fr or de)
+	 * @param lang language code (nl, fr or de)
 	 * @throws IOException 
 	 */
 	public void write(Writer w, SortedSet<Holiday> days, String lang) throws IOException {
