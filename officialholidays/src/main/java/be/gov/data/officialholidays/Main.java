@@ -29,6 +29,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.SortedSet;
 
 /**
@@ -37,47 +38,61 @@ import java.util.SortedSet;
  * @author Bart Hanssens
  */
 public class Main {
+	private static int year;
 
+	private static Path p;
+	private static String lang;
+	
+	private final static List<String> langs = List.of("nl", "fr", "de");
+	
 	/**
 	 * Display usage: enter the year and (optionally) an output file
 	 */
 	private static void printUsage() {
-		System.out.println("Usage: officialholidays <year> [output.ics]");
+		System.out.println("Usage: officialholidays <year> [output.ics (nl|de|fr)]");
 	}
 
+	private static boolean parseArgs(String[] args) {
+		if (args.length < 1) {
+			return false;
+		}
+
+		try {
+			year = Integer.parseInt(args[0]);
+		} catch (NumberFormatException e) {
+			return false;
+		}
+
+		if (args.length == 3) {
+			p = Path.of(args[1]);
+			lang = args[2];
+
+			if (!langs.contains(lang)) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	/**
 	 * Main
 	 * 
 	 * @param args 
 	 */
     public static void main(String[] args) {
-		if (args.length < 1) {
+		if (! parseArgs(args)) {
 			printUsage();
-			System.exit(-1);
+			System.exit(-1);		
 		}
 
-		try {
-			int year = Integer.parseInt(args[0]);
-			SortedSet<Holiday> days = Calculator.allDatesOrdered(year);
+		SortedSet<Holiday> days = Calculator.allDatesOrdered(year);
 			
-			if (args.length == 3) {
-				Path p = Path.of(args[1]);
-				String lang = args[2];
-				
-				try (FileWriter w = new FileWriter(p.toFile(), StandardCharsets.UTF_8)) {
-					IcalWriter ical = new IcalWriter();
-					ical.write(w, days, lang);
-				} catch (IOException e) {
-					System.err.println(e.getMessage());
-					System.exit(-3);
-				}
-			} else {
-				printUsage();
-				System.exit(-3);
-			}
-		} catch (NumberFormatException e) {
-			printUsage();
-			System.exit(-4);
-		}	
+		try (FileWriter w = new FileWriter(p.toFile(), StandardCharsets.UTF_8)) {
+			IcalWriter ical = new IcalWriter();
+			ical.write(w, days, lang);
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+			System.exit(-3);
+		}
     }
 }
