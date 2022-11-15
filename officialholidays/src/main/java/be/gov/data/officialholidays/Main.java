@@ -86,13 +86,18 @@ public class Main {
 		}
 
 		SortedSet<Holiday> days = Calculator.allDatesOrdered(year);
-			
-		try (FileWriter w = new FileWriter(p.toFile(), StandardCharsets.UTF_8)) {
-			IcalWriter ical = new IcalWriter();
-			ical.write(w, days, lang);
-		} catch (IOException e) {
-			System.err.println(e.getMessage());
-			System.exit(-3);
+
+		if (p != null) {
+			try (FileWriter w = new FileWriter(p.toFile(), StandardCharsets.UTF_8)) {
+				IcalWriter ical = new IcalWriter();
+				ical.write(w, days, lang);
+			} catch (IOException e) {
+				System.err.println(e.getMessage());
+				System.exit(-3);
+			}
+		} else {
+			days.stream().forEach(d -> 
+				System.out.println(d.date() + ": " + d.nl() + ", " + d.fr() + ", " + d.de()));
 		}
     }
 }
