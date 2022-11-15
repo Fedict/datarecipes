@@ -32,7 +32,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
- * Generate a list of the official holidays in Belgium.
+ * Calculat the list of the official holidays in Belgium.
  * 
  * @author Bart Hanssens
  */
@@ -42,8 +42,8 @@ public class Calculator {
 	 * Calculate the date of Easter, using the algorithm published in New Scientist in 1961 
 	 * See also https://en.wikipedia.org/wiki/Date_of_Easter
 	 * 
-	 * @param year
-	 * @return 
+	 * @param year year
+	 * @return date of Easter in that year
 	 */
 	public static LocalDate calculateEaster(int year) {
 		int a = year % 19;
@@ -72,11 +72,11 @@ public class Calculator {
 	public static Set<Holiday> easterBasedDates(int year) {
 		LocalDate easter = calculateEaster(year);
 		return Set.of(
-			new Holiday(easter, "Pasen", "Pâques", ""),
-			new Holiday(easter.plusDays(1), "Paasmaandag", "lundi de Pâques", ""),
-			new Holiday(easter.plusDays(40), "OLH Hemelvaart", "Ascension", ""),
-			new Holiday(easter.plusDays(50), "Pinksteren", "Ascension", ""),			
-			new Holiday(easter.plusDays(51), "Pinkstermaandag", "Ascension", ""));
+			new Holiday(easter, "Pasen", "Pâques", "Ostern"),
+			new Holiday(easter.plusDays(1), "Paasmaandag", "lundi de Pâques", "Ostermontag"),
+			new Holiday(easter.plusDays(40), "Hemelvaartsdag", "L'Ascension", "Christi Himmelfahrt"),
+			new Holiday(easter.plusDays(50), "Pinksteren", "la Pentecôte", "Pfingsten"),			
+			new Holiday(easter.plusDays(51), "Pinkstermaandag", "lundi de la Pentecôte ", "Pfingstmontag"));
 	}
 
 	/**
@@ -88,12 +88,12 @@ public class Calculator {
 	public static Set<Holiday> fixedDates(int year) {
 		return Set.of(
 			new Holiday(LocalDate.of(year, 1, 1), "Nieuwjaar", "jour de l'An", "Neujahr"),
-			new Holiday(LocalDate.of(year, 5, 1), "Feest van de Arbeid", "fête du Travail", ""),
-			new Holiday(LocalDate.of(year, 7, 21), "National feestdag", "fête nationale", ""),
-			new Holiday(LocalDate.of(year, 8, 15), "OLV Hemelvaart", "Assomption", ""),
-			new Holiday(LocalDate.of(year, 11, 1), "Allerheiligen", "Toussaint", ""),
-			new Holiday(LocalDate.of(year, 11, 11), "Wapenstilstand", "Armistice", ""),
-			new Holiday(LocalDate.of(year, 12, 25), "Kerstmis", "Noël", "")		
+			new Holiday(LocalDate.of(year, 5, 1), "Feest van de Arbeid", "fête du Travail", "Tag der Arbeit"),
+			new Holiday(LocalDate.of(year, 7, 21), "Nationale feestdag", "fête nationale", "Nationalfeiertag"),
+			new Holiday(LocalDate.of(year, 8, 15), "Maria-Tenhemelopneming", "Assomption", "Mariä Aufnahme in den Himmel"),
+			new Holiday(LocalDate.of(year, 11, 1), "Allerheiligen", "Toussaint", "Allerheiligen"),
+			new Holiday(LocalDate.of(year, 11, 11), "Wapenstilstand", "Armistice", "Waffenstillstand"),
+			new Holiday(LocalDate.of(year, 12, 25), "Kerstmis", "Noël", "Weihnachten")
 		);
 	}
 
