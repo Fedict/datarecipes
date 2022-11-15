@@ -26,7 +26,10 @@
 package be.gov.data.officialholidays;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Generate a list of the official holidays in Belgium.
@@ -64,9 +67,9 @@ public class Calculator {
 	 * Holidays based on the data of Easter
 	 * 
 	 * @param year
-	 * @return 
+	 * @return set of holidays
 	 */
-	public static Set<Holiday> easterBased(int year) {
+	public static Set<Holiday> easterBasedDates(int year) {
 		LocalDate easter = calculateEaster(year);
 		return Set.of(
 			new Holiday(easter, "Pasen", "Pâques", ""),
@@ -79,8 +82,8 @@ public class Calculator {
 	/**
 	 * Holidays with a fixed date in Gregorian calendar
 	 * 
-	 * @param year
-	 * @return 
+	 * @param year year
+	 * @return set of holidays
 	 */
 	public static Set<Holiday> fixedDates(int year) {
 		return Set.of(
@@ -94,4 +97,17 @@ public class Calculator {
 		);
 	}
 
+	/**
+	 * Get an ordered set of all holidays
+	 * 
+	 * @param year year
+	 * @return 
+	 */
+	public static SortedSet<Holiday> allDatesOrdered(int year) {
+		SortedSet<Holiday> dates = new TreeSet<>(Comparator.comparing(Holiday::date));
+		dates.addAll(fixedDates(year));
+		dates.addAll(easterBasedDates(year));
+		
+		return dates;
+	}
 }

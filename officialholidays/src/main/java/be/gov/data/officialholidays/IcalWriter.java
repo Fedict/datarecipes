@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, FPS BOSA DG DT
+ * Copyright (c) 2022, Bart.Hanssens
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,59 +25,57 @@
  */
 package be.gov.data.officialholidays;
 
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
+import java.io.Writer;
+import java.time.format.DateTimeFormatter;
 import java.util.SortedSet;
 
 /**
- * Generate a list of the official holidays in Belgium.
- * 
- * @author Bart Hanssens
+ *
+ * @author Bart.Hanssens
  */
-public class Main {
+public class IcalWriter {
+	private void writeStart(Writer w) throws IOException {
+		w.write("BEGIN:VCALENDAR\r\n");
+		w.write("VERSION:2.0\r\n");
+		w.write("PRODID:BE Official Holidays Calculator\r\n");
+		w.write("CALSCALE:GREGORIAN\r\n");
+		w.write("METHOD:PUBLISH\r\n");
+		w.flush();
+	}
+	
+	private void writeDay(Writer w, Holiday h, String lang) throws IOException {
+		w.write("BEGIN:VEVENT\r\n");
+		
+		switch(lang) {
+			case "nl" -> w.write("SUMMARY;LANGUAGE=nl-be:" + h.nl() + "\r\n");
+			case "fr" -> w.write("SUMMARY;LANGUAGE=nl-fr:" + h.fr() + "\r\n");
+			case "de" -> w.write("SUMMARY;LANGUAGE=nl-de:" + h.de() + "\r\n");
+		}
 
-	/**
-	 * Display usage: enter the year and (optionally) an output file
-	 */
-	private static void printUsage() {
-		System.out.println("Usage: officialholidays <year> [output.ics]");
+		w.write("DTSTART;VALUE=DATE:" + h.date().format(DateTimeFormatter.BASIC_ISO_DATE) + "\r\n");
+		w.write("END:VEVENT\r\n");
+		w.flush();
+	}
+
+	private void writeEnd(Writer w) throws IOException {
+		w.write("END:VCALENDAR\r\n");
+		w.flush();
 	}
 
 	/**
-	 * Main
+	 * Write days to vcal file
 	 * 
-	 * @param args 
+	 * @param w
+	 * @param days
+	 * @param language code (nl, fr or de)
+	 * @throws IOException 
 	 */
-    public static void main(String[] args) {
-		if (args.length < 1) {
-			printUsage();
-			System.exit(-1);
+	public void write(Writer w, SortedSet<Holiday> days, String lang) throws IOException {
+		writeStart(w);
+		for (Holiday day: days) {
+			writeDay(w, day, lang);
 		}
-
-		try {
-			int year = Integer.parseInt(args[0]);
-			SortedSet<Holiday> days = Calculator.allDatesOrdered(year);
-			
-			if (args.length == 3) {
-				Path p = Path.of(args[1]);
-				String lang = args[2];
-				
-				try (FileWriter w = new FileWriter(p.toFile(), StandardCharsets.UTF_8)) {
-					IcalWriter ical = new IcalWriter();
-					ical.write(w, days, lang);
-				} catch (IOException e) {
-					System.err.println(e.getMessage());
-					System.exit(-3);
-				}
-			} else {
-				printUsage();
-				System.exit(-3);
-			}
-		} catch (NumberFormatException e) {
-			printUsage();
-			System.exit(-4);
-		}	
-    }
+		writeEnd(w);
+	}
 }
