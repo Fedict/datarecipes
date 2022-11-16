@@ -12,6 +12,22 @@
     </properties>
 	<name>Population per zipcode</name>
 	<description>(Approximation of) population by zipcode, based on statistical sectors and postal codes</description>
+    <licenses>
+		<license>
+			<name>BSD-2-Clause</name>
+			<url>https://opensource.org/licenses/BSD-2-Clause</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	<developers>
+		<developer>
+			<name>Bart Hanssens</name>
+			<email>opendata@bosa.fgov.be</email>
+			<organization>FPS BOSA DG DT</organization>
+			<organizationUrl>https://dt.bosa.be/</organizationUrl>
+			<timezone>Europe/Brussels</timezone>
+		</developer>
+	</developers>
 	<repositories>
 		<repository>
 			<id>osgeo</id>
@@ -57,7 +73,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
+                <version>3.3.0</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -70,7 +86,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.2.4</version>
+                <version>3.4.1</version>
                 <configuration>
                     <createDependencyReducedPom>true</createDependencyReducedPom>
                     <filters>
