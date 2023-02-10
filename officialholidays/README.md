@@ -18,7 +18,7 @@ Compile the tool using maven and JDK 17.
 
 ## Notes
 
-This tool does not include school holidays or extra ("bridging") holidays.
+This tool does not include school holidays or extra ("bridging") holidays, nor Regional holidays.
 
 ### Federal public services
 
