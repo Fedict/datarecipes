@@ -91,7 +91,7 @@ public abstract class Converter {
 		LOG.info("Getting features from {}", file);
 
 		Map params = new HashMap<>();
-        params.put("url", file.toURI().toURL());
+		params.put("url", file.toURI().toURL());
 		DataStore store = DataStoreFinder.getDataStore(params);
 		SimpleFeatureSource src = store.getFeatureSource(name);
 		SimpleFeatureCollection coll = src.getFeatures();
