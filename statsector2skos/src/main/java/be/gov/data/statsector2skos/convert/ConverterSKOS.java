@@ -44,10 +44,16 @@ import org.eclipse.rdf4j.rio.Rio;
 
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
+import org.geotools.geometry.jts.JTS;
+import org.geotools.referencing.CRS;
 import org.locationtech.jts.geom.MultiPolygon;
 
-
 import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.geometry.MismatchedDimensionException;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
+import org.opengis.referencing.operation.TransformException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,8 +66,8 @@ import org.slf4j.LoggerFactory;
 public class ConverterSKOS extends Converter {
 	private final static Logger LOG = LoggerFactory.getLogger(ConverterSKOS.class);
 
-	private final static IRI PERIM = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricPerimeterLength");
-	private final static IRI AREA = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricArea");
+	private final static IRI MPL = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricPerimeterLength");
+	private final static IRI MA = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricArea");
 	private final static IRI GEO = Values.iri("http://www.opengis.net/ont/geosparql#hasGeometry");
 	private final static IRI WKT = Values.iri("http://www.opengis.net/ont/geosparql#wktLiteral");
 
@@ -92,6 +98,18 @@ public class ConverterSKOS extends Converter {
 		IRI iri = Values.iri(base);
 		addHeader(m, iri);
 
+		CoordinateReferenceSystem L08;
+		CoordinateReferenceSystem WGS;
+		MathTransform transform;
+
+		try {
+			L08 = CRS.decode("EPSG:3812");
+			WGS = CRS.decode("EPSG:4326");
+			transform = CRS.findMathTransform(L08, WGS);
+		} catch (FactoryException ex) {
+			throw new IOException(ex);
+		}
+
 		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.SHP);
 		try (SimpleFeatureIterator features = collection.features()) {
 			while (features.hasNext()) {
@@ -121,7 +139,7 @@ public class ConverterSKOS extends Converter {
 				IRI broader = Values.iri(REFNIS + "/" + city);
 
 				double area = getPropertyDouble(feature, Converter.AREA);
-				double perim = getPropertyDouble(feature, Converter.PERI);
+				double perim = getPropertyDouble(feature, Converter.PERIM);
 
 				m.add(sector, RDF.TYPE, SKOS.CONCEPT);
 				m.add(sector, SKOS.PREF_LABEL, Values.literal(nl, "nl"));
@@ -131,20 +149,26 @@ public class ConverterSKOS extends Converter {
 				m.add(sector, SKOS.BROADER, broader);
 				
 				if (area > 0) {
-					m.add(sector, AREA, Values.literal(area));
-					m.add(sector, PERIM, Values.literal(perim));
+					m.add(sector, MA, Values.literal(area));
+					m.add(sector, MPL, Values.literal(perim));
 				}
 
-				// Get the coordinates
+				// Get the coordinates of the polygon
 				Object geom = feature.getDefaultGeometry();
 				if (geom instanceof MultiPolygon poly) {
-					m.add(sector, GEO, Values.literal(poly.toText(), WKT));
+					try {
+						// Convert Lambert 2008 to ETRS89/WGS84
+						String shape = JTS.transform(poly, transform).toText();
+						m.add(sector, GEO, Values.literal(shape, WKT));
+					} catch (MismatchedDimensionException|TransformException ex) {
+						LOG.error("Could not convert coordinates for {}", nis);
+					}
 				} else {
 					LOG.error("No coordinates found for {}", nis);
 				}
 			}
 		}
-		
+
 		try(OutputStream fos = Files.newOutputStream(outfile)) {
 			Rio.write(m, fos, RDFFormat.NTRIPLES);
 		}

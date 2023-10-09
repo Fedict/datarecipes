@@ -66,7 +66,7 @@ public abstract class Converter {
 	
 	public static final String NIS5 = "CNIS5_2023";
 	public static final String AREA = "Shape_Area";
-	public static final String PERI = "Shape_Leng";
+	public static final String PERIM = "Shape_Leng";
 
 	/**
 	 * Convert from directory with shapefiles to another file format
