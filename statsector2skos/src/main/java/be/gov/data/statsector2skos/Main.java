@@ -46,7 +46,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Main class.
- * Converts NGI AdminVector shapefile to CSV with coordinates of the city center.
+ * 
+ * Converts Statbel statistical sectors shapefile to SKOS.
  * 
  * @see https://statbel.fgov.be/en/open-data/statistical-sectors-2023
  * 
