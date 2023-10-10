@@ -72,6 +72,7 @@ public abstract class Converter {
 	 * Convert from directory with shapefiles to another file format
 	 * 
 	 * @param infile shapefile input directory
+	 * @param base base URI
 	 * @param outfile output directory
 	 * @throws IOException
 	 */

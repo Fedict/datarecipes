@@ -39,6 +39,7 @@ import org.eclipse.rdf4j.model.vocabulary.DCTERMS;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
 import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.SKOS;
+import org.eclipse.rdf4j.model.vocabulary.XSD;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
 
@@ -46,7 +47,11 @@ import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
+
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.PrecisionModel;
+import org.locationtech.jts.precision.GeometryPrecisionReducer;
 
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.geometry.MismatchedDimensionException;
@@ -95,12 +100,18 @@ public class ConverterSKOS extends Converter {
 	@Override
 	public void convert(Path indir, String base, Path outfile) throws IOException {
 		Model m = new LinkedHashModel();
+		m.setNamespace(SKOS.PREFIX, SKOS.NAMESPACE);
+		m.setNamespace(DCTERMS.PREFIX, DCTERMS.NAMESPACE);
+		m.setNamespace(XSD.PREFIX, XSD.NAMESPACE);
+		m.setNamespace("geo", "http://www.opengis.net/ont/geosparql#");
+
 		IRI iri = Values.iri(base);
 		addHeader(m, iri);
 
 		CoordinateReferenceSystem L08;
 		CoordinateReferenceSystem WGS;
 		MathTransform transform;
+		PrecisionModel pm = new PrecisionModel(100_000);
 
 		try {
 			L08 = CRS.decode("EPSG:3812");
@@ -158,7 +169,8 @@ public class ConverterSKOS extends Converter {
 				if (geom instanceof MultiPolygon poly) {
 					try {
 						// Convert Lambert 2008 to ETRS89/WGS84
-						String shape = JTS.transform(poly, transform).toText();
+						Geometry wgs = JTS.transform(poly, transform);
+						String shape = GeometryPrecisionReducer.reduce(wgs, pm).toText();
 						m.add(sector, GEO, Values.literal(shape, WKT));
 					} catch (MismatchedDimensionException|TransformException ex) {
 						LOG.error("Could not convert coordinates for {}", nis);

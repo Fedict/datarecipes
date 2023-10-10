@@ -87,5 +87,6 @@
     <maven.compiler.source>17</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <geotools.version>29.2</geotools.version>
+    <rdf4j.version>4.3.6</rdf4j.version>
   </properties>
 </project>
