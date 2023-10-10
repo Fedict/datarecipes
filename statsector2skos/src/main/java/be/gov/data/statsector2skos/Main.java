@@ -58,7 +58,7 @@ public class Main {
 	private final static Options OPTS = new Options()
 		.addRequiredOption("i", "inputFile", true, "zipped shapefile")
 		.addRequiredOption("b", "base", true, "base URL")
-		.addRequiredOption("o", "outputFile", true, "SKOS output directory");
+		.addRequiredOption("o", "outputFile", true, "SKOS output file (TTL, NT or JSONLD)");
 
 	/**
 	 * Print help info
@@ -124,11 +124,11 @@ public class Main {
 			System.exit(-1);
 		}
 
-		String indir = cli.getOptionValue("i");
+		String infile = cli.getOptionValue("i");
 		String base = cli.getOptionValue("b");
-		String outdir = cli.getOptionValue("o");
+		String outfile = cli.getOptionValue("o");
 
-		Path pin = Paths.get(indir);
+		Path pin = Paths.get(infile);
 		if (! (Files.exists(pin) && Files.isReadable(pin))) {
 			LOG.error("Cannot read input {}", pin);
 			System.exit(-2);
@@ -144,7 +144,7 @@ public class Main {
 		
 		try {
 			Converter conv = new ConverterSKOS();
-			Path pout = Paths.get(outdir, "statsector2023.nt");
+			Path pout = Paths.get(outfile);
 			LOG.info("Converting shapefile {} to {}", pin, pout);
 			conv.convert(pin, base, pout);
 			LOG.info("Done");

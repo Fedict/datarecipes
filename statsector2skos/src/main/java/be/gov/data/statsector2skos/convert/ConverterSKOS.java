@@ -30,6 +30,8 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
@@ -181,8 +183,15 @@ public class ConverterSKOS extends Converter {
 			}
 		}
 
-		try(OutputStream fos = Files.newOutputStream(outfile)) {
-			Rio.write(m, fos, RDFFormat.NTRIPLES);
+		Optional<RDFFormat> fmt = RDFFormat.matchFileName(outfile.getFileName().toString(), 
+										List.of(RDFFormat.JSONLD, RDFFormat.NTRIPLES, RDFFormat.TURTLE));
+
+		if (fmt.isPresent()) {
+			try(OutputStream fos = Files.newOutputStream(outfile)) {
+				Rio.write(m, fos, fmt.get());
+			}
+		} else {
+			LOG.error("Unknown format for {}", outfile);			
 		}
 	}
 }
