@@ -65,8 +65,14 @@ public abstract class Converter {
 	public static final String DE = "T_SEC_DE";
 	
 	public static final String NIS5 = "CNIS5_2023";
+
+	public static final String NIS6 = "C_NIS6";
+	public static final String NIS6_NL = "T_NIS6_NL";
+	public static final String NIS6_FR = "T_NIS6_FR";
+
 	public static final String AREA = "Shape_Area";
 	public static final String PERIM = "Shape_Leng";
+
 
 	/**
 	 * Convert from directory with shapefiles to another file format

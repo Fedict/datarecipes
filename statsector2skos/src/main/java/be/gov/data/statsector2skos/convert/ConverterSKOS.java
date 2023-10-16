@@ -73,6 +73,7 @@ import org.slf4j.LoggerFactory;
 public class ConverterSKOS extends Converter {
 	private final static Logger LOG = LoggerFactory.getLogger(ConverterSKOS.class);
 
+	private final static IRI DEPTH = Values.iri("http://rdf-vocabulary.ddialliance.org/xkos#depth");
 	private final static IRI MPL = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricPerimeterLength");
 	private final static IRI MA = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricArea");
 	private final static IRI GEO = Values.iri("http://www.opengis.net/ont/geosparql#hasGeometry");
@@ -106,6 +107,7 @@ public class ConverterSKOS extends Converter {
 		m.setNamespace(DCTERMS.PREFIX, DCTERMS.NAMESPACE);
 		m.setNamespace(XSD.PREFIX, XSD.NAMESPACE);
 		m.setNamespace("geo", "http://www.opengis.net/ont/geosparql#");
+		m.setNamespace("xkos", "http://rdf-vocabulary.ddialliance.org/xkos#");
 
 		IRI iri = Values.iri(base);
 		addHeader(m, iri);
@@ -123,43 +125,76 @@ public class ConverterSKOS extends Converter {
 			throw new IOException(ex);
 		}
 
+		IRI coll9 = Values.iri(BASE + "/level/nis9");
+		IRI coll6 = Values.iri(BASE + "/level/nis6");
+
 		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.SHP);
 		try (SimpleFeatureIterator features = collection.features()) {
 			while (features.hasNext()) {
 				SimpleFeature feature = features.next();
 
 				// Get the NIS9 code
-				String nis = getProperty(feature, Converter.ID);
-				IRI sector = Values.iri(BASE + "/" + nis);
+				String nis9 = getProperty(feature, Converter.ID);
+				IRI sector = Values.iri(BASE + "/" + nis9);
 
-				// Get the names in 1 or more languages
-				String nl = getProperty(feature, Converter.NL);
-				String fr = getProperty(feature, Converter.FR);
-				String de = getProperty(feature, Converter.DE);
+				// Get the NIS9 names in 1 or more languages
+				String nis9_nl = getProperty(feature, Converter.NL);
+				String nis9_fr = getProperty(feature, Converter.FR);
+				String nis9_de = getProperty(feature, Converter.DE);
 
 				// Also add non-translated names
-				if (nl.isEmpty()) {
-					nl = fr;
+				if (nis9_nl.isEmpty()) {
+					nis9_nl = nis9_fr;
 				}
-				if (fr.isEmpty()) {
-					fr = nl;
+				if (nis9_fr.isEmpty()) {
+					nis9_fr = nis9_nl;
 				}
-				if (de.isEmpty()) {
-					de = fr;
+				if (nis9_de.isEmpty()) {
+					nis9_de = nis9_fr;
 				}
 
-				String city = getProperty(feature, Converter.NIS5);
-				IRI broader = Values.iri(REFNIS + "/" + city);
+				// Get the NIS6 code
+				String nis6 = getProperty(feature, Converter.NIS6);
+				IRI sub = Values.iri(BASE + "/" + nis6);
+
+				// Get the NIS6 names in 1 or more languages
+				String nis6_nl = getProperty(feature, Converter.NIS6_NL);
+				String nis6_fr = getProperty(feature, Converter.NIS6_FR);
+
+				// Also add non-translated names
+				if (nis6_nl.isEmpty()) {
+					nis6_nl = nis6_fr;
+				}
+				if (nis6_fr.isEmpty()) {
+					nis6_fr = nis6_nl;
+				}
+	
+				String nis5 = getProperty(feature, Converter.NIS5);
+				IRI city = Values.iri(REFNIS + "/" + nis5);
 
 				double area = getPropertyDouble(feature, Converter.AREA);
 				double perim = getPropertyDouble(feature, Converter.PERIM);
 
 				m.add(sector, RDF.TYPE, SKOS.CONCEPT);
-				m.add(sector, SKOS.PREF_LABEL, Values.literal(nl, "nl"));
-				m.add(sector, SKOS.PREF_LABEL, Values.literal(fr, "fr"));
-				m.add(sector, SKOS.PREF_LABEL, Values.literal(de, "de"));
-				m.add(sector, SKOS.NOTATION, Values.literal(nis));
-				m.add(sector, SKOS.BROADER, broader);
+				m.add(sector, SKOS.PREF_LABEL, Values.literal(nis9_nl, "nl"));
+				m.add(sector, SKOS.PREF_LABEL, Values.literal(nis9_fr, "fr"));
+				m.add(sector, SKOS.PREF_LABEL, Values.literal(nis9_de, "de"));
+				m.add(sector, SKOS.NOTATION, Values.literal(nis9));
+				m.add(sector, SKOS.IN_SCHEME, iri);
+				m.add(sector, SKOS.MEMBER, coll9);
+				m.add(sector, SKOS.BROADER, sub);
+
+				m.add(sub, RDF.TYPE, SKOS.CONCEPT);
+				m.add(sub, SKOS.PREF_LABEL, Values.literal(nis6_nl, "nl"));
+				m.add(sub, SKOS.PREF_LABEL, Values.literal(nis6_fr, "fr"));
+				m.add(sub, SKOS.NOTATION, Values.literal(nis6));
+				m.add(sub, SKOS.BROADER, city);
+				m.add(sub, SKOS.TOP_CONCEPT_OF, iri);
+				m.add(sub, SKOS.IN_SCHEME, iri);
+				m.add(sector, SKOS.MEMBER, coll6);
+				m.add(iri, SKOS.HAS_TOP_CONCEPT, sub);
+
+				//m.add(sector, DEPTH, Values.literal("9"));
 				
 				if (area > 0) {
 					m.add(sector, MA, Values.literal(area));
@@ -175,10 +210,10 @@ public class ConverterSKOS extends Converter {
 						String shape = GeometryPrecisionReducer.reduce(wgs, pm).toText();
 						m.add(sector, GEO, Values.literal(shape, WKT));
 					} catch (MismatchedDimensionException|TransformException ex) {
-						LOG.error("Could not convert coordinates for {}", nis);
+						LOG.error("Could not convert coordinates for {}", nis9);
 					}
 				} else {
-					LOG.error("No coordinates found for {}", nis);
+					LOG.error("No coordinates found for {}", nis9);
 				}
 			}
 		}
