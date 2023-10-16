@@ -91,12 +91,13 @@ public class ConverterSKOS extends Converter {
 		m.add(iri, DCTERMS.TITLE, Values.literal("StatSector2023", "fr"));
 		m.add(iri, DCTERMS.TITLE, Values.literal("StatSector2023", "de"));
 		m.add(iri, DCTERMS.TITLE, Values.literal("StatSector2023", "en"));
-		m.add(iri, DCTERMS.DESCRIPTION, Values.literal("StatSector2023", "nl"));
-		m.add(iri, DCTERMS.DESCRIPTION, Values.literal("StatSector2023", "fr"));
-		m.add(iri, DCTERMS.DESCRIPTION, Values.literal("StatSector2023", "de"));
-		m.add(iri, DCTERMS.DESCRIPTION, Values.literal("StatSector2023", "en"));
+		m.add(iri, DCTERMS.DESCRIPTION, Values.literal("Statistische sectoren van België op 01/01/2023, geldig tot de volgende wijziging/verbetering van de gemeentegrenzen.", "nl"));
+		m.add(iri, DCTERMS.DESCRIPTION, Values.literal("Secteurs statistiques de Belgique au 01/01/2023, valable jusqu’à la prochaine modification/correction des limites communales.", "fr"));
+		m.add(iri, DCTERMS.DESCRIPTION, Values.literal("Statistische Sektoren Belgiens am 01/01/2023, gültig bis zur nächsten Aktualisierung/Korrektur der Gemeindegrenzen.", "de"));
+		m.add(iri, DCTERMS.DESCRIPTION, Values.literal("Statistical sectors of Belgium on 01/01/2023, valid until the next update/correction of the municipal boundaries.", "en"));
 		m.add(iri, OWL.VERSIONINFO, Values.literal("Draft 2023-10-09"));
 		m.add(iri, DCTERMS.MODIFIED, Values.literal(LocalDateTime.now()));
+		m.add(iri, DCTERMS.LICENSE, Values.iri("https://statbel.fgov.be/sites/default/files/files/opendata/Licence%20open%20data_EN.pdf"));
 		m.add(iri, DCTERMS.SOURCE, Values.iri("https://statbel.fgov.be/en/open-data/statistical-sectors-2023"));
 	}
 		
