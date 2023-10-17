@@ -73,6 +73,7 @@ import org.slf4j.LoggerFactory;
 public class ConverterSKOS extends Converter {
 	private final static Logger LOG = LoggerFactory.getLogger(ConverterSKOS.class);
 
+	private final static IRI LEVEL = Values.iri("http://rdf-vocabulary.ddialliance.org/xkos#ClassificationLevel");
 	private final static IRI DEPTH = Values.iri("http://rdf-vocabulary.ddialliance.org/xkos#depth");
 	private final static IRI MPL = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricPerimeterLength");
 	private final static IRI MA = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricArea");
@@ -126,8 +127,16 @@ public class ConverterSKOS extends Converter {
 			throw new IOException(ex);
 		}
 
+		// XKOS levels
 		IRI coll9 = Values.iri(BASE + "/level/nis9");
+		m.add(coll9, RDF.TYPE, LEVEL);
+		m.add(coll9, RDF.TYPE, SKOS.COLLECTION);
+		m.add(coll9, DEPTH, Values.literal("9", XSD.POSITIVE_INTEGER));
+		
 		IRI coll6 = Values.iri(BASE + "/level/nis6");
+		m.add(coll6, RDF.TYPE, LEVEL);
+		m.add(coll6, RDF.TYPE, SKOS.COLLECTION);
+		m.add(coll6, DEPTH, Values.literal("6", XSD.POSITIVE_INTEGER));
 
 		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.SHP);
 		try (SimpleFeatureIterator features = collection.features()) {
@@ -182,7 +191,6 @@ public class ConverterSKOS extends Converter {
 				m.add(sector, SKOS.PREF_LABEL, Values.literal(nis9_de, "de"));
 				m.add(sector, SKOS.NOTATION, Values.literal(nis9));
 				m.add(sector, SKOS.IN_SCHEME, iri);
-				m.add(sector, SKOS.MEMBER, coll9);
 				m.add(sector, SKOS.BROADER, sub);
 
 				m.add(sub, RDF.TYPE, SKOS.CONCEPT);
@@ -192,8 +200,10 @@ public class ConverterSKOS extends Converter {
 				m.add(sub, SKOS.BROADER, city);
 				m.add(sub, SKOS.TOP_CONCEPT_OF, iri);
 				m.add(sub, SKOS.IN_SCHEME, iri);
-				m.add(sector, SKOS.MEMBER, coll6);
 				m.add(iri, SKOS.HAS_TOP_CONCEPT, sub);
+
+				m.add(coll9, SKOS.MEMBER, sector);
+				m.add(coll6, SKOS.MEMBER, sub);
 
 				//m.add(sector, DEPTH, Values.literal("9"));
 				
