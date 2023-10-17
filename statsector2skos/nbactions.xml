@@ -12,7 +12,7 @@
             <properties>
                 <exec.vmArgs></exec.vmArgs>
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
-                <exec.appArgs>-i  C:\Data\refnis\sh_statbel_statistical_sectors_3812_20230101.shp.zip -b https://vocab.belgif.be/auth/statsector2023 -o C:\Data\refnis\statsect2023.nt</exec.appArgs>
+                <exec.appArgs>-i  C:\Data\refnis\sh_statbel_statistical_sectors_3812_20230101.shp.zip -b http://vocab.belgif.be/auth/statsector2023 -o C:\Data\refnis\statsector2023.nt</exec.appArgs>
                 <exec.mainClass>be.gov.data.statsector2skos.Main</exec.mainClass>
                 <exec.executable>java</exec.executable>
                 <exec.workingdir></exec.workingdir>
@@ -30,7 +30,7 @@
             <properties>
                 <exec.vmArgs>-agentlib:jdwp=transport=dt_socket,server=n,address=${jpda.address}</exec.vmArgs>
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
-                <exec.appArgs>-i  C:\Data\refnis\sh_statbel_statistical_sectors_3812_20230101.shp.zip -b https://vocab.belgif.be/auth/statsector2023 -o C:\Data\refnis\statsect2023.nt</exec.appArgs>
+                <exec.appArgs>-i  C:\Data\refnis\sh_statbel_statistical_sectors_3812_20230101.shp.zip -b http://vocab.belgif.be/auth/statsector2023 -o C:\Data\refnis\statsector2023.nt</exec.appArgs>
                 <exec.mainClass>be.gov.data.statsector2skos.Main</exec.mainClass>
                 <exec.executable>java</exec.executable>
                 <jpda.listen>true</jpda.listen>
@@ -51,7 +51,7 @@
                 <exec.args>${exec.vmArgs} -classpath %classpath ${exec.mainClass} ${exec.appArgs}</exec.args>
                 <exec.mainClass>be.gov.data.statsector2skos.Main</exec.mainClass>
                 <exec.executable>java</exec.executable>
-                <exec.appArgs>-i  C:\Data\refnis\sh_statbel_statistical_sectors_3812_20230101.shp.zip -b https://vocab.belgif.be/auth/statsector2023 -o C:\Data\refnis\statsect2023.nt</exec.appArgs>
+                <exec.appArgs>-i  C:\Data\refnis\sh_statbel_statistical_sectors_3812_20230101.shp.zip -b http://vocab.belgif.be/auth/statsector2023 -o C:\Data\refnis\statsector2023.nt</exec.appArgs>
                 <exec.workingdir></exec.workingdir>
             </properties>
         </action>

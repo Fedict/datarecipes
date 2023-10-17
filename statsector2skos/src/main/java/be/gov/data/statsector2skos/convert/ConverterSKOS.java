@@ -192,6 +192,7 @@ public class ConverterSKOS extends Converter {
 				m.add(sector, SKOS.NOTATION, Values.literal(nis9));
 				m.add(sector, SKOS.IN_SCHEME, iri);
 				m.add(sector, SKOS.BROADER, sub);
+				m.add(sub, SKOS.NARROWER, sector);
 
 				m.add(sub, RDF.TYPE, SKOS.CONCEPT);
 				m.add(sub, SKOS.PREF_LABEL, Values.literal(nis6_nl, "nl"));
