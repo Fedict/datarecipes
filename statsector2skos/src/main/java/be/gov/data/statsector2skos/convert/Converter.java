@@ -55,7 +55,7 @@ public abstract class Converter {
 	// shape files
 	public static final String SHP = "sh_statbel_statistical_sectors_3812_20230101";
 
-	public static final String BASE = "http://vocab.belgif.be/auth/statsect2023";
+	public static final String BASE = "http://vocab.belgif.be/auth/statsector2023";
 	public static final String REFNIS = "http://vocab.belgif.be/auth/refnis2019";
 	
 	// properties inside the shape files
