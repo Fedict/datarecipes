@@ -32,10 +32,12 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.eclipse.rdf4j.model.BNode;
 
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
+import org.eclipse.rdf4j.model.util.RDFCollections;
 import org.eclipse.rdf4j.model.util.Values;
 import org.eclipse.rdf4j.model.vocabulary.DCTERMS;
 import org.eclipse.rdf4j.model.vocabulary.OWL;
@@ -74,6 +76,7 @@ public class ConverterSKOS extends Converter {
 	private final static Logger LOG = LoggerFactory.getLogger(ConverterSKOS.class);
 
 	private final static IRI LEVEL = Values.iri("http://rdf-vocabulary.ddialliance.org/xkos#ClassificationLevel");
+	private final static IRI LEVELS = Values.iri("http://rdf-vocabulary.ddialliance.org/xkos#levels");
 	private final static IRI DEPTH = Values.iri("http://rdf-vocabulary.ddialliance.org/xkos#depth");
 	private final static IRI MPL = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricPerimeterLength");
 	private final static IRI MA = Values.iri("http://www.opengis.net/ont/geosparql#hasMetricArea");
@@ -137,6 +140,10 @@ public class ConverterSKOS extends Converter {
 		m.add(coll6, RDF.TYPE, LEVEL);
 		m.add(coll6, RDF.TYPE, SKOS.COLLECTION);
 		m.add(coll6, DEPTH, Values.literal("6", XSD.POSITIVE_INTEGER));
+		
+		BNode bn = Values.bnode();
+		m.add(iri, LEVELS, bn);
+		m.addAll(RDFCollections.asRDF(List.of(coll6, coll9), bn, new LinkedHashModel()));
 
 		SimpleFeatureCollection collection = getFeatures(indir.toFile(), Converter.SHP);
 		try (SimpleFeatureIterator features = collection.features()) {
